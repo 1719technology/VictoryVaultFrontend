@@ -555,30 +555,20 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import ClientSidePreselect from "./ClientSidePreselect";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Navigation } from "@/components/navigation";
+import { Suspense } from "react";
 import { Footer } from "@/components/footer";
 import {
-  DollarSign,
-  Shield,
-  CreditCard,
-  User,
-  MapPin,
-  Building,
-  Heart,
-  CheckCircle,
-  Lock,
-  Flag,
+  DollarSign, Shield, CreditCard, User, MapPin, Building,
+  Heart, CheckCircle, Lock, Flag,
 } from "lucide-react";
 
 interface CandidateOption {
@@ -593,16 +583,10 @@ interface CauseOption {
 
 export default function DonatePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const preselected = searchParams.get("campaignId");
 
-  const [donationType, setDonationType] = useState<"candidate" | "cause">(
-    "candidate"
-  );
+  const [donationType, setDonationType] = useState<"candidate" | "cause">("candidate");
   const [candidates, setCandidates] = useState<CandidateOption[]>([]);
-  const [selectedRecipient, setSelectedRecipient] = useState<string>(
-    preselected || ""
-  );
+  const [selectedRecipient, setSelectedRecipient] = useState<string>("");
   const [amount, setAmount] = useState("");
   const [customAmount, setCustomAmount] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
@@ -650,17 +634,12 @@ export default function DonatePage() {
             ? (json as any).campaigns.map((c: any) => ({ id: c.id, title: c.title }))
             : [];
         setCandidates(list);
-        if (preselected) {
-          setSelectedRecipient(preselected);
-          setDonationType("candidate");  // make sure the Candidate tab is active
-        }
-
       } catch (e) {
         console.error("Failed loading candidates:", e);
       }
     }
     loadCandidates();
-  }, [API, KEY, preselected]);
+  }, [API, KEY]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -711,7 +690,14 @@ export default function DonatePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navigation />
-
+      <Suspense fallback={null}>
+        <ClientSidePreselect
+          onSelect={(id) => {
+            setSelectedRecipient(id);
+            setDonationType("candidate");
+          }}
+        />
+      </Suspense>
       <section className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-12">
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex justify-center mb-4">
@@ -747,8 +733,8 @@ export default function DonatePage() {
                   <label
                     key={cand.id}
                     className={`flex p-4 border rounded-lg cursor-pointer ${selectedRecipient === String(cand.id)
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-200 hover:border-red-300"
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-200 hover:border-red-300"
                       }`}
                   >
                     <input
@@ -772,8 +758,8 @@ export default function DonatePage() {
                   <label
                     key={cause.id}
                     className={`flex p-4 border rounded-lg cursor-pointer ${selectedRecipient === cause.id
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-200 hover:border-red-300"
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-200 hover:border-red-300"
                       }`}
                   >
                     <input

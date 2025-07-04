@@ -234,7 +234,7 @@ import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { Eye, EyeOff, Mail, Lock, Flag } from "lucide-react";
 import Link from "next/link";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -322,44 +322,19 @@ export default function SignInPage() {
 
             <CardContent className="space-y-6">
               {error && <p className="text-sm text-red-600 text-center">{error}</p>}
-
-              {/* Google Sign In */}
-              {/* <GoogleLogin
-                onSuccess={(credentialResponse) => {
-                  // 1) grab the ID token Google gave you
-                  const idToken = credentialResponse.credential;
-                  // 2) send that to your backend
-                  fetch(`${API}/api/v1/auth_login`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ token: idToken }),
-                  })
-                    .then((res) => res.json())
-                    .then(({ token }) => {
-                      localStorage.setItem("token", token);
-                      router.push("/home");
-                    })
-                    .catch((e) => setError(e.message));
-                  console.log("ID Token:", idToken);
-                  console.log("CredentialResponse:", credentialResponse);
-
-                }}
-
-                onError={() => {
-                  setError("Google sign-in failed");
-                  setIsLoading(false);
-                }}
-                width="300"
-              /> */}
               <GoogleLogin
                 width={500}
-                onSuccess={(credentialResponse) => {
-                  // 1) Grab the ID token Google gave you
+                onSuccess={(credentialResponse: CredentialResponse) => {
                   const idToken = credentialResponse.credential;
+
+                  if (!idToken) {
+                    setError("Google did not return a valid credential.");
+                    return;
+                  }
+
                   console.log("ID Token:", idToken);
                   console.log("CredentialResponse:", credentialResponse);
 
-                  // 2) Send that to your backend and handle errors
                   fetch(`${API}/api/v1/auth_login`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -367,28 +342,23 @@ export default function SignInPage() {
                   })
                     .then(async (res) => {
                       const json = await res.json();
-                      if (!res.ok) {
-                        // Jump to .catch with the server’s error message or a generic one
-                        throw new Error(json.message || `HTTP ${res.status}`);
-                      }
+                      if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
                       return json;
                     })
                     .then(({ token }) => {
-                      // On success, store your own auth token and navigate
                       localStorage.setItem("token", token);
                       router.push("/admin");
                     })
                     .catch((e) => {
-                      // On any error (500, 401, network), show feedback instead
                       setError(e.message || "Login failed");
                     });
                 }}
                 onError={() => {
-                  // Fired if the Google SDK itself fails
                   setError("Google sign-in failed");
                   setIsLoading(false);
                 }}
               />
+
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
