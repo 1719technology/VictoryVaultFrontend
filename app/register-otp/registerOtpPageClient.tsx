@@ -74,7 +74,7 @@ export default function RegisterOtpPageClient() {
   const handleVerifyOtp = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`${API}/api/v1/verify-login-otp`, {
+      const res = await fetch(`${API}/api/v1/verify-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
