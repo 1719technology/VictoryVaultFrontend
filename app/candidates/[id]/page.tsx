@@ -49,7 +49,14 @@ export default function CampaignDetailPage() {
     fetchCampaign();
   }, [id, API, KEY]);
 
-  if (loading) return <p className="p-8 text-center">Loading…</p>;
+  if (loading) return (
+  <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
+    <div className="text-5xl font-extrabold text-red-600 animate-pulse tracking-widest">
+      VV
+    </div>
+  </div>
+);
+if (loading) return <p className="p-8 text-center">Loading…</p>;
   if (error)   return <p className="p-8 text-center text-red-600">Error: {error}</p>;
   if (!campaign) return <p className="p-8 text-center">Not found.</p>;
 

@@ -1,228 +1,146 @@
-'use client';
+"use client"
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import { Navigation } from "@/components/navigation"
+import { Footer } from "@/components/footer"
+import { CampaignForm, type CampaignData } from "@/components/campaign-form"
+import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react"
+import Link from "next/link"
+
+const API = process.env.NEXT_PUBLIC_API_BASE_URL!
+
+async function createCampaign(data: CampaignData): Promise<{ success: boolean; message: string }> {
+  console.log("Sending campaign payload:", data)
+
+  const formData = new FormData()
+
+  // Append scalar values
+  formData.append("campaignName", data.title)
+  formData.append("tagline", data.tagline)
+  formData.append("category", data.category)
+  formData.append("visibility", data.visibility)
+  formData.append("fundingGoal", data.targetAmount.toString())
+  formData.append("currency", data.currency)
+  formData.append("duration", data.duration.toString())
+  formData.append("endDate", data.endDate)
+  formData.append("description", data.description)
+  formData.append("videoUrl", data.videoUrl)
+  formData.append("recipientName", data.recipientName)
+  formData.append("recipientOrganization", data.recipientOrganization)
+  formData.append("recipientRelationship", data.recipientRelationship)
+  formData.append("fundDelivery", data.fundDelivery)
+  formData.append("donorUpdates", data.donorUpdates.toString())
+  formData.append("facebookSharing", data.facebookSharing.toString())
+  formData.append("twitterSharing", data.twitterSharing.toString())
+  formData.append("linkedInSharing", data.linkedInSharing.toString())
+  formData.append("refundPolicy", data.refundPolicy)
+  formData.append("disbursementSchedule", data.disbursementSchedule)
+  formData.append("disclaimers", data.disclaimers)
+  formData.append("termsAccepted", data.termsAccepted.toString())
+  formData.append("advancedFeaturesEnabled", data.advancedFeaturesEnabled.toString())
+  formData.append("teamCollaboration", data.teamCollaboration.toString())
+  formData.append("customDonationAmounts", data.customDonationAmounts.toString())
+  formData.append("donorRecognition", data.donorRecognition.toString())
+  formData.append("analyticsIntegration", data.analyticsIntegration.toString())
+
+  // Append cover image if present
+  if (data.coverImage instanceof File) {
+    formData.append("coverImage", data.coverImage)
+  }
+
+  // Append gallery images
+  data.imageGallery.forEach((file, index) => {
+    if (file instanceof File) {
+      formData.append(`imageGallery`, file)
+    }
+  })
+
+  try {
+    const token = localStorage.getItem("authToken")
+    if (!token) {
+      throw new Error("User is not authenticated. Please sign in again.")
+    }
+
+    const res = await fetch(`${API}/api/v1/create_campaign`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    })
+
+
+    const result = await res.json()
+    console.log("Backend response:", res.status, result)
+
+    if (!res.ok) {
+      throw new Error(result.message || `Error ${res.status}: ${JSON.stringify(result)}`)
+    }
+
+    // Redirect after success
+    if (typeof window !== "undefined") {
+      window.location.href = "/admin"
+    }
+
+    return { success: true, message: result.message || "Campaign created successfully." }
+  } catch (error: any) {
+    console.error("Campaign creation failed:", error)
+    throw new Error(error.message || "An unexpected error occurred.")
+  }
+}
 
 export default function CreateCampaignPage() {
-  const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [fundingGoal, setFundingGoal] = useState("");
-  const [mediaType, setMediaType] = useState<"photo" | "video">("photo");
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [videoUrl, setVideoUrl] = useState("");
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
-  const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFiles(e.target.files);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setError("You must be signed in to create a campaign.");
-      setIsLoading(false);
-      return;
-    }
-
-    const payload: any = {
-      title,
-      description,
-      goal: Number(fundingGoal),
-      end_date: endDate,
-      email,
-      photo:
-        mediaType === "photo" && files && files[0]
-          ? files[0].name
-          : mediaType === "video"
-          ? videoUrl
-          : "",
-    };
-
+  const handleSubmit = async (data: CampaignData) => {
+    setIsSaving(true)
+    setMessage(null)
     try {
-      const res = await fetch(`${API}/api/v1/create_campaign`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        let errMsg = `HTTP ${res.status}`;
-        try {
-          const errJson = await res.json();
-          errMsg = errJson.message || errMsg;
-        } catch {
-          errMsg = await res.text();
-        }
-        throw new Error(errMsg);
-      }
-
-      const data = await res.json();
-      // 1) stash the new campaign so AdminPage can prepend it
-      sessionStorage.setItem("newCampaign", JSON.stringify(data));
-      // 2) navigate back to dashboard
-      router.push("/admin");
-    } catch (err: any) {
-      setError(err.message);
+      const result = await createCampaign(data)
+      setMessage({ type: "success", text: result.message })
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "An unknown error occurred.",
+      })
     } finally {
-      setIsLoading(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Create New Campaign</h1>
-        <Link href="/admin">
-          <Button variant="outline">← Back to Dashboard</Button>
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <Navigation />
 
-      {error && <p className="mb-4 text-red-600">{error}</p>}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Title */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Campaign Title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border-gray-300"
-          />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Campaign Description
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            required
-            className="mt-1 block w-full rounded-md border-gray-300"
-          />
-        </div>
-
-        {/* Goal */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Funding Goal ($)
-          </label>
-          <input
-            type="number"
-            value={fundingGoal}
-            onChange={(e) => setFundingGoal(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border-gray-300"
-          />
-        </div>
-
-        {/* End Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            End Date
-          </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border-gray-300"
-          />
-        </div>
-
-        {/* Creator Email */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Your Email
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border-gray-300"
-          />
-        </div>
-
-        {/* Media Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Campaign Media
-          </label>
-          <select
-            value={mediaType}
-            onChange={(e) =>
-              setMediaType(e.target.value as "photo" | "video")
-            }
-            className="mt-1 block w-full rounded-md border-gray-300"
-          >
-            <option value="photo">Upload Photo</option>
-            <option value="video">Video URL</option>
-          </select>
-        </div>
-
-        {/* Photo / Video */}
-        {mediaType === "photo" ? (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Upload Photo
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="mt-1 block w-full text-sm text-gray-500"
-            />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <div className="flex items-center space-x-4 mb-4">
+            <Link href="/dashboard" className="flex items-center text-gray-600 hover:text-red-600 transition-colors">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Link>
           </div>
-        ) : (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Video URL
-            </label>
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              required
-              className="mt-1 block w-full rounded-md border-gray-300"
-            />
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Campaign</h1>
+          <p className="text-gray-600">Set up your new political campaign with all the necessary details.</p>
+        </div>
+
+        {message && (
+          <div
+            className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${message.type === "success"
+                ? "bg-green-50 border border-green-200 text-green-800"
+                : "bg-red-50 border border-red-200 text-red-800"
+              }`}
+          >
+            {message.type === "success" ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+            <span>{message.text}</span>
           </div>
         )}
 
-        {/* Submit */}
-        <div>
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="bg-indigo-600 text-white"
-          >
-            {isLoading ? "Creating..." : "Create Campaign"}
-          </Button>
-        </div>
-      </form>
+        <CampaignForm onSubmit={handleSubmit} isSaving={isSaving} />
+      </div>
+
+      <Footer />
     </div>
-  );
+  )
 }
