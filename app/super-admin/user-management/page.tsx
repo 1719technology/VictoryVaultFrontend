@@ -23,7 +23,7 @@ import {
   DialogDescription
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Search, Trash2, Play, Pause, Shield } from "lucide-react"
+import { ArrowLeft, Search, Trash2, Play, Pause, Shield, Eye } from "lucide-react"
 import { toast } from "sonner"
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL as string
@@ -49,7 +49,7 @@ export default function UserManagementPage() {
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
-  const [viewUser] = useState<AdminUser | null>(null)
+  const [viewUser, setViewUser] = useState<AdminUser | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [actionType, setActionType] = useState<"pause" | "activate" | "delete" | "restore" | "role">("pause")
@@ -77,6 +77,24 @@ export default function UserManagementPage() {
       toast.error("Failed to fetch users")
     }
   }, [roleFilter, statusFilter])
+
+  const fetchSingleUser = async (userId: string) => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+
+    try {
+      const res = await fetch(`${API}/api/v1/admin/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const data = await res.json()
+      setViewUser(data)
+      setViewDialogOpen(true)
+    } catch {
+      toast.error("Failed to load user details")
+    }
+  }
 
   useEffect(() => {
     fetchUsers()
@@ -225,6 +243,7 @@ export default function UserManagementPage() {
                 <Button variant="outline" size="sm" onClick={() => handleAction(user, "activate")}><Play className="w-4 h-4" /></Button>
                 <Button variant="outline" size="sm" onClick={() => handleAction(user, "delete")}><Trash2 className="w-4 h-4" /></Button>
                 <Button variant="outline" size="sm" onClick={() => handleAction(user, "restore")}><Shield className="w-4 h-4" /></Button>
+                <Button variant="outline" size="sm" onClick={() => fetchSingleUser(user.id)}><Eye className="w-4 h-4" /></Button>
               </div>
             </div>
           </Card>
@@ -239,7 +258,7 @@ export default function UserManagementPage() {
               {actionType === "role" ? "Change Role" : `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} User`}
             </DialogTitle>
             <DialogDescription>
-              {selectedUser ? `Performing "${actionType}" on ${selectedUser.fullName}` : ""}
+              {selectedUser ? `Performing \"${actionType}\" on ${selectedUser.fullName}` : ""}
             </DialogDescription>
           </DialogHeader>
 

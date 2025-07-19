@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import DonatePageInner from "./donatepageinner";
+import DonatePageInner from "./donatePageInner";
 
 export default function DonatePage() {
   return (

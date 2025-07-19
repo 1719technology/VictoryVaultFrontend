@@ -8,10 +8,10 @@ interface Campaign {
   id: number;
   name: string;
   description: string;
-  status: 'Active' | 'Closed';
+  status: 'Active' | 'Paused' | 'Deleted';
   fundingGoal: number;
   fundingRaised: number;
-  endDate: string;   // ISO date string
+  endDate: string;
   photo: string;
 }
 
@@ -29,7 +29,7 @@ export default function AdminPage() {
   type TotalDataResponse = { totalRaised: number };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     if (!token) {
       router.replace('/signin');
       return;
@@ -70,7 +70,7 @@ export default function AdminPage() {
                 : "Untitled",
             description: typeof obj.description === "string" ? obj.description : "",
             status:
-              obj.status === "Active" || obj.status === "Closed"
+              obj.status === "Active" || obj.status === "Paused" || obj.status === "Deleted"
                 ? obj.status
                 : "Active",
             fundingGoal: Number(obj.goal ?? obj.fundingGoal ?? 0),
@@ -98,65 +98,64 @@ export default function AdminPage() {
   }, [API, router]);
 
   const activeCount = campaigns.filter(c => c.status === 'Active').length;
-  const totalDonors = 0;
+  const pausedCount = campaigns.filter(c => c.status === 'Paused').length;
+  const deletedCount = campaigns.filter(c => c.status === 'Deleted').length;
 
   const openEditModal = (campaign: Campaign) => {
     setEditingCampaign(campaign);
     setEditForm({ ...campaign });
   };
+
   const closeEditModal = () => {
     setEditingCampaign(null);
     setEditForm({});
   };
+
   const handleEditChange = (field: keyof Campaign, value: string | number) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
   };
+
   const submitEdit = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingCampaign) return;
-    setLoading(true);
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`${API}/api/v1/update_campaign/${editingCampaign.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(editForm),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setCampaigns(prev => prev.map(c => c.id === editingCampaign.id ? ({ ...c, ...(editForm as Campaign) }) : c));
-      closeEditModal();
-    } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
-      else setError('An unexpected error occurred.');
-    } finally {
-      setLoading(false);
-    }
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    await fetch(`${API}/api/v1/update_campaign/${editingCampaign.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(editForm),
+    });
+
+    setCampaigns(prev => prev.map(c => c.id === editingCampaign.id ? { ...c, ...(editForm as Campaign) } : c));
+    closeEditModal();
   };
 
   const confirmDelete = (id: number) => setToDeleteId(id);
   const cancelDelete = () => setToDeleteId(null);
+
   const doDelete = async () => {
     if (toDeleteId == null) return;
-    setLoading(true);
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`${API}/api/v1/delete_campaign/${toDeleteId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setCampaigns(prev => prev.filter(c => c.id !== toDeleteId));
-      cancelDelete();
-    } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
-      else setError('An unexpected error occurred.');
-    } finally {
-      setLoading(false);
-    }
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    await fetch(`${API}/api/v1/delete_campaign/${toDeleteId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    setCampaigns(prev => prev.map(c => c.id === toDeleteId ? { ...c, status: 'Deleted' } : c));
+    setToDeleteId(null);
   };
-  if (loading && !error) return <p className="p-8">Loading…</p>;
+
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Top Nav */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -168,93 +167,155 @@ export default function AdminPage() {
           </nav>
           <div className="flex items-center space-x-4">
             <Link href="/admin/create-campaign">
-              <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg">New Campaign</button>
+              <button className="px-6 py-2 bg-red-600 text-white rounded-lg">New Campaign</button>
             </Link>
-            <button onClick={() => { localStorage.removeItem('token'); router.push('/signin'); }} className="text-gray-600 hover:text-gray-800">Sign Out</button>
+            <button onClick={() => { localStorage.removeItem('authToken'); router.push('/signin'); }} className="text-gray-600 hover:text-gray-800">Sign Out</button>
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white border-r hidden lg:block">
-          <nav className="mt-6 space-y-2 px-4">
-            <Link href="/admin" className="block px-4 py-2 hover:bg-gray-100 rounded">Dashboard</Link>
-            <Link href="/admin/create-campaign" className="block px-4 py-2 hover:bg-gray-100 rounded">Campaigns</Link>
-            <Link href="/admin/analytics" className="block px-4 py-2 hover:bg-gray-100 rounded">Analytics</Link>
-            <Link href="/admin/profile" className="block px-4 py-2 hover:bg-gray-100 rounded">User Profile</Link>
-          </nav>
-          <div className="px-4 mt-auto pb-4">
-            <Link href="/" className="text-indigo-600 hover:underline">View Public Site</Link>
+      <main className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="text-2xl font-bold">Dashboard</div>
+          <button
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            onClick={() => router.push('/admin/create-campaign')}
+          >
+            + Create New Campaign
+          </button>
+        </div>
+
+        <p className="text-lg text-gray-600 mb-6">Welcome back! Here's an overview of your campaigns and activities.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="p-4 bg-green-50 border border-green-200 rounded">
+            <h4 className="text-md font-semibold">Active Campaigns</h4>
+            <p className="text-2xl font-bold mt-2">{activeCount}</p>
+            <p className="text-sm text-gray-500">Currently running</p>
           </div>
-        </aside>
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
+            <h4 className="text-md font-semibold">Paused Campaigns</h4>
+            <p className="text-2xl font-bold mt-2">{pausedCount}</p>
+            <p className="text-sm text-gray-500">Temporarily halted</p>
+          </div>
+          <div className="p-4 bg-red-50 border border-red-300 rounded">
+            <h4 className="text-md font-semibold">Deleted Campaigns</h4>
+            <p className="text-2xl font-bold mt-2">{deletedCount}</p>
+            <p className="text-sm text-gray-500">Can be restored</p>
+          </div>
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded">
+            <h4 className="text-md font-semibold">Total Donations</h4>
+            <p className="text-2xl font-bold mt-2">${totalRaised.toLocaleString()}</p>
+            <p className="text-sm text-gray-500">Across all campaigns</p>
+          </div>
+        </div>
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-8">
-          {/* Metrics */}
-          <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-gray-600">Total Raised</div>
-              <div className="text-3xl font-bold mt-2">${totalRaised}</div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-gray-600">Active Campaigns</div>
-              <div className="text-3xl font-bold mt-2">{activeCount}</div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-gray-600">Total Donors</div>
-              <div className="text-3xl font-bold mt-2">{totalDonors}</div>
-            </div>
-          </section>
-
-          {/* Campaign List */}
-          <section>
-            <h3 className="text-xl font-semibold mb-4">Your Campaigns</h3>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <h2 className="text-xl font-semibold mb-4">All Campaigns</h2>
+        <div className="bg-white shadow rounded-lg overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">Campaign Title</th>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">Status</th>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">Donations</th>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">Progress</th>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
               {campaigns.map(c => (
-                <div key={c.id} className="bg-white p-6 rounded-lg shadow hover:shadow-lg flex flex-col h-full">
-                  <h4 className="text-lg font-semibold mb-2 truncate">{c.name}</h4>
-                  <p className="flex-1 mb-2 text-gray-600 line-clamp-3">{c.description}</p>
-                  <p className="mb-2 text-sm text-gray-500">Ends: {new Date(c.endDate).toLocaleDateString()}</p>
-                  <div className="mt-auto grid grid-cols-2 gap-3">
-                    <button onClick={() => openEditModal(c)} className="w-full py-2 bg-yellow-500 text-white rounded-lg">Edit</button>
-                    <button onClick={() => confirmDelete(c.id)} className="w-full py-2 bg-red-500 text-white rounded-lg">Delete</button>
-                  </div>
-                </div>
+                <tr key={c.id} className="border-t">
+                  <td className="px-4 py-2 font-medium text-gray-800">{c.name}</td>
+                  <td className="px-4 py-2">
+                    <span className={`inline-block px-3 py-1 text-xs rounded-full font-semibold ${c.status === 'Active' ? 'bg-green-100 text-green-800' : c.status === 'Paused' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>{c.status}</span>
+                  </td>
+                  <td className="px-4 py-2">${c.fundingRaised.toLocaleString()}</td>
+                  <td className="px-4 py-2">{Math.round((c.fundingRaised / c.fundingGoal) * 100)}%</td>
+                  <td className="px-4 py-2 space-x-2">
+                    <button className="text-blue-600 hover:underline">View</button>
+                    <button className="text-yellow-600 hover:underline" onClick={() => openEditModal(c)}>Edit</button>
+                    <button className="text-red-600 hover:underline" onClick={() => confirmDelete(c.id)}>Delete</button>
+                  </td>
+                </tr>
               ))}
-            </div>
-          </section>
+            </tbody>
+          </table>
+        </div>
 
-          {/* Edit Modal */}
-          {editingCampaign && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-              <form onSubmit={submitEdit} className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md overflow-auto">
-                <h5 className="text-lg font-semibold mb-4">Edit Campaign</h5>
-                <div className="space-y-4">
-                  <div><label className="block mb-1">Name</label><input value={editForm.name || ''} onChange={e => handleEditChange('name', e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
-                  <div><label className="block mb-1">Description</label><textarea value={editForm.description || ''} onChange={e => handleEditChange('description', e.target.value)} className="w-full border px-3 py-2 rounded h-24" /></div>
-                  <div><label className="block mb-1">Status</label><select value={editForm.status || 'Active'} onChange={e => handleEditChange('status', e.target.value as 'Active' | 'Closed')} className="w-full border px-3 py-2 rounded"><option>Active</option><option>Closed</option></select></div>
-                  <div><label className="block mb-1">Funding Goal ($)</label><input type="number" value={editForm.fundingGoal ?? 0} onChange={e => handleEditChange('fundingGoal', +e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
-                  <div><label className="block mb-1">Funding Raised ($)</label><input type="number" value={editForm.fundingRaised ?? 0} onChange={e => handleEditChange('fundingRaised', +e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
-                  <div><label className="block mb-1">End Date</label><input type="date" value={(editForm.endDate || '').slice(0, 10)} onChange={e => handleEditChange('endDate', e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
-                </div>
-                <div className="mt-6 flex justify-end space-x-3"><button type="button" onClick={closeEditModal} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button><button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg">Save</button></div>
-              </form>
-            </div>
-          )}
+        {/* Quick Actions */}
+        <section className="mt-12">
+          <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link href="/admin/create-campaign">
+              <div className="border border-blue-300 rounded p-6 text-center hover:shadow cursor-pointer">
+                <div className="text-blue-500 text-2xl mb-2">＋</div>
+                <div className="text-blue-600 font-medium">Create New Campaign</div>
+              </div>
+            </Link>
+            <Link href="/admin/UserProfiles">
+              <div className="border border-purple-300 rounded p-6 text-center hover:shadow cursor-pointer">
+                <div className="text-purple-500 text-2xl mb-2">⚙️</div>
+                <div className="text-purple-600 font-medium">Account Settings</div>
+              </div>
+            </Link>
+            <Link href="/admin/analytics">
+              <div className="border border-green-300 rounded p-6 text-center hover:shadow cursor-pointer">
+                <div className="text-green-500 text-2xl mb-2">📈</div>
+                <div className="text-green-600 font-medium">View Analytics</div>
+              </div>
+            </Link>
+          </div>
+        </section>
 
-          {/* Delete Modal */}
-          {toDeleteId !== null && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
-                <h5 className="text-lg font-semibold mb-4">Confirm Deletion</h5>
-                <p className="mb-6 text-gray-600">Are you sure you want to delete this campaign?</p>
-                <div className="flex justify-end space-x-3"><button onClick={cancelDelete} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button><button onClick={doDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg">Delete</button></div>
+        {/* Delete Modal */}
+        {toDeleteId !== null && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg shadow max-w-sm w-full">
+              <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
+              <p className="mb-4 text-gray-600">Are you sure you want to delete this campaign?</p>
+              <div className="flex justify-end space-x-3">
+                <button onClick={cancelDelete} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                <button onClick={doDelete} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
               </div>
             </div>
-          )}
-        </main>
-      </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {editingCampaign && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <form onSubmit={submitEdit} className="bg-white p-6 rounded shadow w-full max-w-md">
+              <h3 className="text-lg font-semibold mb-4">Edit Campaign</h3>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  className="w-full border px-4 py-2 rounded"
+                  placeholder="Campaign Title"
+                  value={editForm.name || ''}
+                  onChange={e => handleEditChange('name', e.target.value)}
+                />
+                <textarea
+                  className="w-full border px-4 py-2 rounded"
+                  placeholder="Description"
+                  value={editForm.description || ''}
+                  onChange={e => handleEditChange('description', e.target.value)}
+                />
+                <input
+                  type="number"
+                  className="w-full border px-4 py-2 rounded"
+                  placeholder="Funding Goal"
+                  value={editForm.fundingGoal || 0}
+                  onChange={e => handleEditChange('fundingGoal', Number(e.target.value))}
+                />
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button onClick={closeEditModal} type="button" className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
+              </div>
+            </form>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
