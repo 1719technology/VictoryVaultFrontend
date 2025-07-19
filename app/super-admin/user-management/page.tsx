@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -23,7 +23,7 @@ import {
   DialogDescription
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Eye, Search, Trash2, Play, Pause, Shield } from "lucide-react"
+import { ArrowLeft, Search, Trash2, Play, Pause, Shield } from "lucide-react"
 import { toast } from "sonner"
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL as string
@@ -49,18 +49,14 @@ export default function UserManagementPage() {
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
-  const [viewUser, setViewUser] = useState<AdminUser | null>(null)
+  const [viewUser] = useState<AdminUser | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [actionType, setActionType] = useState<"pause" | "activate" | "delete" | "restore" | "role">("pause")
   const [newRole, setNewRole] = useState("user")
   const [notes, setNotes] = useState("")
 
-  useEffect(() => {
-    fetchUsers()
-  }, [roleFilter, statusFilter])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     const token = localStorage.getItem("token")
     if (!token) return
 
@@ -80,7 +76,11 @@ export default function UserManagementPage() {
     } catch {
       toast.error("Failed to fetch users")
     }
-  }
+  }, [roleFilter, statusFilter])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
 
   const handleAction = (user: AdminUser, type: typeof actionType) => {
     setSelectedUser(user)
@@ -96,7 +96,7 @@ export default function UserManagementPage() {
     const id = selectedUser.id
     let endpoint = ""
     let method: "PATCH" | "DELETE" | "PUT" = "PATCH"
-    let body: any = null
+    let body: string | null = null
 
     switch (actionType) {
       case "pause":
@@ -139,29 +139,10 @@ export default function UserManagementPage() {
     }
   }
 
-  const handleViewUser = async (id: string) => {
-    const token = localStorage.getItem("token")
-    if (!token) return
-
-    try {
-      const res = await fetch(`${API}/api/v1/admin/users/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-      const data = await res.json()
-      setViewUser(data.user)
-      setViewDialogOpen(true)
-    } catch {
-      toast.error("Failed to fetch user details")
-    }
-  }
-
   const filteredUsers = users.filter(user =>
     user.fullName.toLowerCase().includes(search.toLowerCase()) ||
     user.email.toLowerCase().includes(search.toLowerCase())
   )
-
   return (
     <div className="p-6 space-y-6">
       <Link href="/super-admin" className="text-sm text-red-600 hover:underline inline-flex items-center gap-2">

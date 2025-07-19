@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -61,13 +60,13 @@ interface FormData {
 }
 
 export default function RegisterPage() {
-  const [currentStep, setCurrentStep] = useState(1)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const API = process.env.NEXT_PUBLIC_API_BASE_URL!
+  const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
@@ -96,17 +95,17 @@ export default function RegisterPage() {
     agreeToPrivacy: false,
     emailNotifications: true,
     smsNotifications: false,
-  })
+  });
 
-  const totalSteps = 6
+  const totalSteps = 6;
 
   const handleInputChange = (field: keyof FormData, value: string | boolean | File | null) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleFileUpload = (field: keyof FormData, file: File | null) => {
-    setFormData((prev) => ({ ...prev, [field]: file }))
-  }
+    setFormData((prev) => ({ ...prev, [field]: file }));
+  };
 
   const validatePassword = (password: string) => {
     const requirements = {
@@ -115,57 +114,31 @@ export default function RegisterPage() {
       lowercase: /[a-z]/.test(password),
       number: /\d/.test(password),
       special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    }
-    return requirements
-  }
+    };
+    return requirements;
+  };
 
-  const passwordRequirements = validatePassword(formData.password)
-  const isPasswordValid = Object.values(passwordRequirements).every(Boolean)
+  const passwordRequirements = validatePassword(formData.password);
+  const isPasswordValid = Object.values(passwordRequirements).every(Boolean);
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1)
+      setCurrentStep(currentStep + 1);
     }
-  }
+  };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(currentStep - 1);
     }
-  }
+  };
 
   const handleSubmit = async () => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      const payload = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        phone: formData.phone,
-        organizationName: formData.organizationName,
-        website: formData.website,
-        role: formData.role,
-        street: formData.street,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
-        country: formData.country,
-        timeZone: formData.timeZone,
-        dateOfBirth: formData.dateOfBirth,
-        incorporationDate: formData.incorporationDate,
-        taxId: formData.taxId,
-        accountNumber: formData.accountNumber,
-        routingNumber: formData.routingNumber,
-        agreeToTerms: formData.agreeToTerms,
-        agreeToPrivacy: formData.agreeToPrivacy,
-        emailNotifications: formData.emailNotifications,
-        smsNotifications: formData.smsNotifications,
-      }
-
-      console.log("Sending registration payload:", payload)
+      const payload = { ...formData };
+      console.log("Sending registration payload:", payload);
 
       const res = await fetch(`${API}/api/v1/register`, {
         method: "POST",
@@ -173,25 +146,25 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-      })
+      });
 
-      const json = await res.json()
-      console.log("API response:", json)
+      const json = await res.json();
+      console.log("API response:", json);
 
       if (!res.ok) {
-        throw new Error(json.message || "Registration failed")
+        throw new Error(json.message || "Registration failed");
       }
+
       console.log("Registration succeeded:", json.message);
       window.location.href = "/register-otp?email=" + formData.email;
-    } catch (err: any) {
-      console.error("Registration error:", err)
-      setError(err.message || "Unexpected error occurred")
+    } catch (err) {
+      console.error("Registration error:", err);
+      const message = err instanceof Error ? err.message : "Unexpected error occurred";
+      setError(message);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
-
-
   const timeZones = [
     "Eastern Time (ET)",
     "Central Time (CT)",
@@ -202,7 +175,6 @@ export default function RegisterPage() {
   ]
 
   const countries = ["United States", "Canada", "United Kingdom", "Australia", "Other"]
-
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -210,7 +182,7 @@ export default function RegisterPage() {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Personal Information</h2>
-              <p className="text-gray-600">Let's start with your basic information</p>
+              <p className="text-gray-600">Let&apos;s start with your basic information</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -688,7 +660,7 @@ export default function RegisterPage() {
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
-                  <p className="text-xs text-gray-500">Driver's license, passport, or state ID</p>
+                  <p className="text-xs text-gray-500">Driver&apos;s license, passport, or state ID</p>
                   <p className="text-xs text-gray-500">PDF, PNG, JPG up to 10MB</p>
                 </div>
               </div>
@@ -864,7 +836,7 @@ export default function RegisterPage() {
                 <div>
                   <h3 className="text-sm font-medium text-green-800">Almost Done!</h3>
                   <p className="mt-1 text-sm text-green-700">
-                    Review your information and click "Create Account" to complete your registration.
+                    Review your information and click &quot;Create Account&quot; to complete your registration.
                   </p>
                 </div>
               </div>
@@ -913,6 +885,12 @@ export default function RegisterPage() {
         <Card className="border-red-100 shadow-lg">
           <CardContent className="p-8">{renderStep()}</CardContent>
         </Card>
+
+        {error && (
+          <div className="mt-4 text-sm text-red-600 bg-red-100 border border-red-200 rounded p-3">
+            {error}
+          </div>
+        )}
 
         {/* Navigation Buttons */}
         <div className="flex justify-between mt-8">

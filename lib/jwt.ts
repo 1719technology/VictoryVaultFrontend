@@ -1,21 +1,23 @@
-// lib/jwt.ts
-import jwt from "jsonwebtoken"
+import jwt, { SignOptions, JwtPayload } from "jsonwebtoken";
 
-const { JWT_SECRET = "" } = process.env
+const { JWT_SECRET = "" } = process.env;
+
 if (!JWT_SECRET) {
-  throw new Error("Missing JWT_SECRET in environment")
+  throw new Error("Missing JWT_SECRET in environment");
 }
 
-export function signJwt(
-  payload: Record<string, any>,
-  options?: jwt.SignOptions
+// Use a generic payload type with a default fallback
+export function signJwt<T extends object>(
+  payload: T,
+  options?: SignOptions
 ): string {
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: "2h",
     ...(options ?? {}),
-  })
+  });
 }
 
-export function verifyJwt<T = any>(token: string): T {
-  return jwt.verify(token, JWT_SECRET) as T
+// T extends JwtPayload ensures it conforms to expected shape
+export function verifyJwt<T extends JwtPayload = JwtPayload>(token: string): T {
+  return jwt.verify(token, JWT_SECRET) as T;
 }

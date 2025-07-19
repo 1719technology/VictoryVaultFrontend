@@ -36,9 +36,9 @@ export default function SignInPage() {
       try {
         const parsed = JSON.parse(user);
         if (parsed.email) setEmail(parsed.email);
-        if (parsed.password) setOtp(parsed.password); // assuming password is reused as OTP
+        if (parsed.password) setOtp(parsed.password);
       } catch (e) {
-        console.warn("Failed to parse user from localStorage");
+        console.warn("Failed to parse user from localStorage:", e);
       }
     }
   }, []);
@@ -50,8 +50,6 @@ export default function SignInPage() {
 
     try {
       const payload = { email, password };
-      console.log("Payload:", payload);
-
       const res = await fetch(`${API}/api/v1/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,27 +57,27 @@ export default function SignInPage() {
       });
 
       const data = await res.json();
-      console.log("Response:", res.status, data);
 
       if (!res.ok) {
-        // If specific error, handle it here
         if (data?.error === "Please verify your email first") {
           setError("You must verify your email before logging in. Please check your inbox.");
           return;
         }
-
-        // Otherwise throw generic error
         throw new Error(data.message || "OTP request failed");
       }
 
       setOtpSent(true);
-    } catch (err: any) {
-      console.error("OTP Request Error:", err);
-      setError(err.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
   }
+
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
     setIsLoading(true);
@@ -90,16 +88,18 @@ export default function SignInPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
       });
-      if (!res.ok) {
-        const { message } = await res.json();
-        throw new Error(message || "OTP verification failed");
-      }
-      const { token } = await res.json();
-localStorage.setItem("authToken", token); // FIXED: store with correct key
-router.push("/admin");
 
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
+      const { token, message } = await res.json();
+      if (!res.ok) throw new Error(message || "OTP verification failed");
+
+      localStorage.setItem("authToken", token);
+      router.push("/admin");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -199,27 +199,24 @@ router.push("/admin");
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 pr-10"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((prev) => !prev)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          tabIndex={-1}
-                        >
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10 pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
                     </div>
                   </div>
                   <Button
@@ -230,7 +227,6 @@ router.push("/admin");
                     {isLoading ? "Sending OTP…" : "Request OTP"}
                   </Button>
                 </form>
-
               ) : (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div className="space-y-2">
@@ -260,7 +256,7 @@ router.push("/admin");
 
               <div className="text-center">
                 <p className="text-sm text-gray-600">
-                  Don't have an account? {" "}
+                  Don&rsquo;t have an account?{" "}
                   <Link
                     href="/signup"
                     className="text-red-600 hover:text-red-500 font-medium"
@@ -276,9 +272,7 @@ router.push("/admin");
             <div className="flex items-start">
               <Lock className="h-5 w-5 text-blue-600" />
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
-                  Secure Sign In
-                </h3>
+                <h3 className="text-sm font-medium text-blue-800">Secure Sign In</h3>
                 <p className="mt-1 text-sm text-blue-700">
                   Your account is protected with bank-level security.
                 </p>
@@ -288,7 +282,7 @@ router.push("/admin");
 
           <div className="text-center">
             <p className="text-sm text-gray-500">
-              Need help signing in? {" "}
+              Need help signing in?{" "}
               <Link
                 href="/contact"
                 className="text-red-600 hover:text-red-500 font-medium"

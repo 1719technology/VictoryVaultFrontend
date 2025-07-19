@@ -7,6 +7,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, FileText, PlayIcon as Campaign, AlertTriangle, CheckCircle, Clock } from "lucide-react"
 
+interface UserData {
+  isActive: boolean;
+}
+
+interface CampaignItem {
+  status: string;
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -37,11 +45,11 @@ export default function AdminDashboard() {
         const users = Array.isArray(usersRes?.data) ? usersRes.data : []
         const campaigns = Array.isArray(campaignsRes?.data) ? campaignsRes.data : []
 
-        const activeUsers = users.filter((u: any) => u.isActive).length
+        const activeUsers = users.filter((u: UserData) => u.isActive).length
         const pausedUsers = users.length - activeUsers
 
-        const activeCampaigns = campaigns.filter((c: any) => c.status === "active").length
-        const pausedCampaigns = campaigns.filter((c: any) => c.status === "paused").length
+        const activeCampaigns = campaigns.filter((c: CampaignItem) => c.status === "active").length
+        const pausedCampaigns = campaigns.filter((c: CampaignItem) => c.status === "paused").length
 
         setStats(prev => ({
           ...prev,

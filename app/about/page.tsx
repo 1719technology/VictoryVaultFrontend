@@ -37,7 +37,7 @@ export default function AboutPage() {
       icon: Shield,
       title: "Security First",
       description:
-        "Bank-level encryption and security protocols protect every donation and donor's personal information.",
+        "Bank-level encryption and security protocols protect every donation and donor&apos;s personal information.",
     },
     {
       icon: Flag,
@@ -81,18 +81,17 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Navigation */}
       <Navigation />
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-20">
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
- <div className="text-center">
+          <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">About VictoryVault</h1>
             <p className="text-xl md:text-2xl mb-8 text-red-100 max-w-3xl mx-auto">
-              America's premier conservative fundraising platform, empowering patriots to support the candidates and
-              causes that will preserve our nation's founding principles.
+              America&apos;s premier conservative fundraising platform, empowering patriots to support the candidates and
+              causes that will preserve our nation&apos;s founding principles.
             </p>
           </div>
         </div>
@@ -102,19 +101,19 @@ export default function AboutPage() {
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
- <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Our Mission</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Our Mission</h2>
             <p className="text-lg text-gray-600 leading-relaxed">
               VictoryVault exists to level the playing field in American politics by providing conservative candidates and
               causes with the same powerful fundraising tools that have long been available to the left. We believe that
-              every American deserves representation that reflects their values, and we're committed to making that
+              every American deserves representation that reflects their values, and we&apos;re committed to making that
               vision a reality through innovative technology and unwavering dedication to conservative principles.
             </p>
           </div>
 
           <div className="bg-gradient-to-r from-blue-50 to-red-50 rounded-lg p-8">
             <blockquote className="text-xl text-gray-800 italic text-center">
-              "Democracy works best when all voices can be heard. VictoryVault ensures that conservative Americans have the
-              platform they need to support the leaders who will fight for their values and their future."
+              &quot;Democracy works best when all voices can be heard. VictoryVault ensures that conservative Americans have the
+              platform they need to support the leaders who will fight for their values and their future.&quot;
             </blockquote>
           </div>
         </div>
@@ -124,7 +123,7 @@ export default function AboutPage() {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
- <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Our Impact</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Our Impact</h2>
             <p className="text-xl text-gray-600">
               Since our founding, VictoryVault has become the backbone of conservative fundraising in America
             </p>
@@ -153,7 +152,7 @@ export default function AboutPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
- <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Our Core Values</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Our Core Values</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Everything we do is guided by these fundamental principles that define who we are and what we stand for
             </p>
@@ -183,7 +182,7 @@ export default function AboutPage() {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
- <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How VictoryVault Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How VictoryVault Works</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Our platform makes it simple and secure for conservatives to support the candidates and causes they
               believe in
@@ -217,7 +216,7 @@ export default function AboutPage() {
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Track Your Impact</h3>
               <p className="text-gray-600">
-                Follow your supported candidates' progress, receive updates on their campaigns, and see how your
+                Follow your supported candidates&apos; progress, receive updates on their campaigns, and see how your
                 contributions are making a difference.
               </p>
             </div>
@@ -229,9 +228,9 @@ export default function AboutPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
- <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Leadership Team</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Leadership Team</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Meet the experienced professionals leading VictoryVault's mission to empower conservative voices
+              Meet the experienced professionals leading VictoryVault&apos;s mission to empower conservative voices
             </p>
           </div>
 
@@ -257,7 +256,7 @@ export default function AboutPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="mb-8">
             <Shield className="h-16 w-16 mx-auto mb-6 text-blue-200" />
- <h2 className="text-3xl md:text-4xl font-bold mb-6">Security & Trust</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Security & Trust</h2>
             <p className="text-xl text-blue-100 mb-8">
               Your security and privacy are our top priorities. VictoryVault employs industry-leading security measures to
               protect your personal information and ensure your donations reach their intended recipients.
@@ -322,7 +321,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Footer */}
       <Footer />
     </div>
   )

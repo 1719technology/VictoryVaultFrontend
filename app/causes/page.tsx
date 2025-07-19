@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -39,7 +40,7 @@ interface Cause {
   supporters: number
   deadline?: string
   location?: string
-  icon: any
+  icon: LucideIcon
   tags: string[]
   impact: string
 }
@@ -52,41 +53,39 @@ export default function CausesPage() {
   const [sortBy, setSortBy] = useState("priority")
   const [showFilters, setShowFilters] = useState(false)
 
-  // Sample causes data
-  const causes: Cause[] = [
-    {
-      id: "1",
-      title: "Border Security Initiative",
-      description:
-        "Supporting enhanced border security measures including physical barriers, technology upgrades, and increased Border Patrol funding to protect American communities.",
-      category: "National Security",
-      level: "federal",
-      priority: "urgent",
-      raised: "$2.8M",
-      goal: "$5M",
-      percentage: 56,
-      supporters: 18400,
-      deadline: "2024-12-31",
-      icon: Shield,
-      tags: ["Immigration", "Security", "Law Enforcement"],
-      impact: "Securing 2,000+ miles of border",
-    },
-    {
-      id: "2",
-      title: "Small Business Tax Relief",
-      description:
-        "Advocating for reduced tax burdens on small businesses to stimulate economic growth and job creation across America.",
-      category: "Economy",
-      level: "federal",
-      priority: "high",
-      raised: "$1.9M",
-      goal: "$3.5M",
-      percentage: 54,
-      supporters: 12800,
-      icon: Briefcase,
-      tags: ["Taxes", "Business", "Economy"],
-      impact: "Supporting 500K+ small businesses",
-    },
+  const causes = useMemo<Cause[]>(
+    () => [
+      {
+        id: "1",
+        title: "Border Security Initiative",
+        description: "Supporting enhanced border security...",
+        category: "National Security",
+        level: "federal",
+        priority: "urgent",
+        raised: "$2.8M",
+        goal: "$5M",
+        percentage: 56,
+        supporters: 18400,
+        deadline: "2024-12-31",
+        icon: Shield,
+        tags: ["Immigration", "Security", "Law Enforcement"],
+        impact: "Securing 2,000+ miles of border",
+      },
+      {
+        id: "2",
+        title: "Small Business Tax Relief",
+        description: "Advocating for reduced tax burdens...",
+        category: "Economy",
+        level: "federal",
+        priority: "high",
+        raised: "$1.9M",
+        goal: "$3.5M",
+        percentage: 54,
+        supporters: 12800,
+        icon: Briefcase,
+        tags: ["Taxes", "Business", "Economy"],
+        impact: "Supporting 500K+ small businesses",
+      },
     {
       id: "3",
       title: "School Choice Expansion",
@@ -255,9 +254,11 @@ export default function CausesPage() {
       tags: ["Healthcare", "Free Market", "Patient Choice"],
       impact: "Benefiting 50M+ patients",
     },
-  ]
+  ],
+  []
+  )
 
-  const categories = [
+    const categories = [
     "National Security",
     "Economy",
     "Education",
@@ -287,14 +288,13 @@ export default function CausesPage() {
       return matchesSearch && matchesCategory && matchesLevel && matchesPriority
     })
 
-    // Sort causes
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "priority":
           const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
           return priorityOrder[b.priority] - priorityOrder[a.priority]
         case "raised":
-          return Number.parseFloat(b.raised.replace(/[$M,K]/g, "")) - Number.parseFloat(a.raised.replace(/[$M,K]/g, ""))
+          return Number.parseFloat(b.raised.replace(/[$MK]/g, "")) - Number.parseFloat(a.raised.replace(/[$MK]/g, ""))
         case "supporters":
           return b.supporters - a.supporters
         case "deadline":
@@ -310,7 +310,8 @@ export default function CausesPage() {
     })
 
     return filtered
-  }, [searchTerm, selectedCategory, selectedLevel, selectedPriority, sortBy])
+  }, [searchTerm, selectedCategory, selectedLevel, selectedPriority, sortBy, causes])
+
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {

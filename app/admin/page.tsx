@@ -26,8 +26,8 @@ export default function AdminPage() {
   const [editForm, setEditForm] = useState<Partial<Campaign>>({});
 
   const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
+  type TotalDataResponse = { totalRaised: number };
 
-  // Fetch campaigns and total on mount
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -51,34 +51,55 @@ export default function AdminPage() {
         if (!resCampaigns.ok) throw new Error('Error loading campaigns');
         if (!resTotal.ok) throw new Error('Error loading total');
         const [campaignData, totalData] = await Promise.all([resCampaigns.json(), resTotal.json()]);
-        return [campaignData, totalData] as [any, any];
+        return [campaignData, totalData] as [unknown, unknown];
       })
       .then(([rawList, totalData]) => {
         const arr: Campaign[] = (
-          Array.isArray(rawList) ? rawList : rawList.campaigns ?? []
-        ).map((item: any) => ({
-          id: item.id,
-          name: item.name || item.title,
-          description: item.description,
-          status: item.status,
-          fundingGoal: Number(item.goal ?? item.fundingGoal) || 0,
-          fundingRaised: Number(item.fundingRaised ?? item.raised) || 0,
-          endDate: typeof item.end_date === 'string' ? item.end_date : `${item.end_date}-01-01`,
-          photo: item.photo || '',
-        }));
+          Array.isArray(rawList)
+            ? rawList
+            : (rawList as { campaigns?: unknown[] }).campaigns ?? []
+        ).map((item) => {
+          const obj = item as Record<string, unknown>;
+
+          return {
+            id: typeof obj.id === "number" ? obj.id : 0,
+            name: typeof obj.name === "string"
+              ? obj.name
+              : typeof obj.title === "string"
+                ? obj.title
+                : "Untitled",
+            description: typeof obj.description === "string" ? obj.description : "",
+            status:
+              obj.status === "Active" || obj.status === "Closed"
+                ? obj.status
+                : "Active",
+            fundingGoal: Number(obj.goal ?? obj.fundingGoal ?? 0),
+            fundingRaised: Number(obj.fundingRaised ?? obj.raised ?? 0),
+            endDate:
+              typeof obj.end_date === "string"
+                ? obj.end_date
+                : typeof obj.end_date === "number"
+                  ? new Date(obj.end_date).toISOString().split("T")[0]
+                  : "2025-12-31",
+            photo: typeof obj.photo === "string" ? obj.photo : "",
+          };
+        });
         setCampaigns(arr);
         if (typeof totalData === 'number') setTotalRaised(totalData);
-        else if (typeof totalData.totalRaised === 'number') setTotalRaised(totalData.totalRaised);
-        else setTotalRaised(arr.reduce((sum, c) => sum + c.fundingRaised, 0));
+        else if (typeof (totalData as TotalDataResponse).totalRaised === 'number') {
+          setTotalRaised((totalData as TotalDataResponse).totalRaised);
+        }
       })
-      .catch(err => setError(err.message))
+      .catch((err: unknown) => {
+        if (err instanceof Error) setError(err.message);
+        else setError('An unexpected error occurred.');
+      })
       .finally(() => setLoading(false));
   }, [API, router]);
 
   const activeCount = campaigns.filter(c => c.status === 'Active').length;
-  const totalDonors = 0; // placeholder
+  const totalDonors = 0;
 
-  // Edit modal handlers
   const openEditModal = (campaign: Campaign) => {
     setEditingCampaign(campaign);
     setEditForm({ ...campaign });
@@ -104,14 +125,14 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(await res.text());
       setCampaigns(prev => prev.map(c => c.id === editingCampaign.id ? ({ ...c, ...(editForm as Campaign) }) : c));
       closeEditModal();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError('An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Delete handlers
   const confirmDelete = (id: number) => setToDeleteId(id);
   const cancelDelete = () => setToDeleteId(null);
   const doDelete = async () => {
@@ -126,15 +147,14 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(await res.text());
       setCampaigns(prev => prev.filter(c => c.id !== toDeleteId));
       cancelDelete();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError('An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
   };
-
   if (loading && !error) return <p className="p-8">Loading…</p>;
-
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Top Nav */}
@@ -211,12 +231,12 @@ export default function AdminPage() {
               <form onSubmit={submitEdit} className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md overflow-auto">
                 <h5 className="text-lg font-semibold mb-4">Edit Campaign</h5>
                 <div className="space-y-4">
-                  <div><label className="block mb-1">Name</label><input value={editForm.name||''} onChange={e => handleEditChange('name', e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
-                  <div><label className="block mb-1">Description</label><textarea value={editForm.description||''} onChange={e => handleEditChange('description', e.target.value)} className="w-full border px-3 py-2 rounded h-24" /></div>
-                  <div><label className="block mb-1">Status</label><select value={editForm.status||'Active'} onChange={e => handleEditChange('status', e.target.value as 'Active'|'Closed')} className="w-full border px-3 py-2 rounded"><option>Active</option><option>Closed</option></select></div>
+                  <div><label className="block mb-1">Name</label><input value={editForm.name || ''} onChange={e => handleEditChange('name', e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
+                  <div><label className="block mb-1">Description</label><textarea value={editForm.description || ''} onChange={e => handleEditChange('description', e.target.value)} className="w-full border px-3 py-2 rounded h-24" /></div>
+                  <div><label className="block mb-1">Status</label><select value={editForm.status || 'Active'} onChange={e => handleEditChange('status', e.target.value as 'Active' | 'Closed')} className="w-full border px-3 py-2 rounded"><option>Active</option><option>Closed</option></select></div>
                   <div><label className="block mb-1">Funding Goal ($)</label><input type="number" value={editForm.fundingGoal ?? 0} onChange={e => handleEditChange('fundingGoal', +e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
                   <div><label className="block mb-1">Funding Raised ($)</label><input type="number" value={editForm.fundingRaised ?? 0} onChange={e => handleEditChange('fundingRaised', +e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
-                  <div><label className="block mb-1">End Date</label><input type="date" value={(editForm.endDate||'').slice(0,10)} onChange={e => handleEditChange('endDate', e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
+                  <div><label className="block mb-1">End Date</label><input type="date" value={(editForm.endDate || '').slice(0, 10)} onChange={e => handleEditChange('endDate', e.target.value)} className="w-full border px-3 py-2 rounded" /></div>
                 </div>
                 <div className="mt-6 flex justify-end space-x-3"><button type="button" onClick={closeEditModal} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button><button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg">Save</button></div>
               </form>

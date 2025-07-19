@@ -1,74 +1,56 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Flag, DollarSign, ChevronRight } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { HamburgerMenu } from "./hamburger-menu"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { DollarSign, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { HamburgerMenu } from "./hamburger-menu";
+import Image from "next/image"; // make sure this import is at the top
 
 export function Navigation() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const pathname = usePathname()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
-  const isActive = (path: string) => {
-    return pathname === path
-  }
+  const isActive = (path: string) => pathname === path;
 
-  // Close mobile menu when route changes
+  useEffect(() => setIsMobileMenuOpen(false), [pathname]);
+
   useEffect(() => {
-    setIsMobileMenuOpen(false)
-  }, [pathname])
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = "unset"
-    }
-
-    // Cleanup function to reset overflow when component unmounts
-    return () => {
-      document.body.style.overflow = "unset"
-    }
-  }, [isMobileMenuOpen])
+    document.body.style.overflow = isMobileMenuOpen ? "hidden" : "unset";
+    return () => { document.body.style.overflow = "unset"; };
+  }, [isMobileMenuOpen]);
 
   const navigationLinks = [
     { href: "/candidates", label: "Candidates", description: "Support conservative leaders" },
     { href: "/causes", label: "Causes", description: "Back important issues" },
     { href: "/about", label: "About", description: "Learn about our mission" },
     { href: "/signin", label: "Sign In", description: "Access your account" },
-  ]
+  ];
 
   const quickLinks = [
     { href: "/privacy", label: "Privacy Policy" },
     { href: "/contact", label: "Contact Support" },
     { href: "/faq", label: "Help Center" },
-  ]
+  ];
 
   return (
     <>
       <nav className="bg-white shadow-sm border-b border-red-100 relative z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo */}
             <div className="flex items-center space-x-2">
-              
               <Link href="/" className="text-2xl font-bold text-navy-900">
                 VictoryVault
               </Link>
             </div>
-
-            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
               {navigationLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`${
-                    isActive(link.href) ? "text-red-600" : "text-gray-700 hover:text-red-600"
-                  } font-medium transition-colors`}
+                  className={`${isActive(link.href) ? "text-red-600" : "text-gray-700 hover:text-red-600"
+                    } font-medium transition-colors`}
                 >
                   {link.label}
                 </Link>
@@ -80,45 +62,39 @@ export function Navigation() {
                 </Button>
               </Link>
             </div>
-
-            {/* Hamburger Menu Button */}
             <HamburgerMenu isOpen={isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
           </div>
         </div>
       </nav>
 
-      {/* Mobile Menu Overlay */}
       <div
-        className={`fixed inset-0 bg-black transition-opacity duration-300 z-40 md:hidden ${
-          isMobileMenuOpen ? "opacity-50 visible" : "opacity-0 invisible"
-        }`}
+        className={`fixed inset-0 bg-black transition-opacity duration-300 z-40 md:hidden ${isMobileMenuOpen ? "opacity-50 visible" : "opacity-0 invisible"
+          }`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Mobile Menu */}
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${
-          isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="flex flex-col h-full">
-          {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-red-50 to-blue-50">
             <div className="flex items-center space-x-3">
-              {/*<div className="bg-red-600 p-2 rounded-lg">
-                <Flag className="h-5 w-5 text-white" />
-              </div>*/}
               <div>
-                <img src="https://www.jasonbyer.com/WinRed_logo.webp" width="100" height="auto" />
+                <Image
+                  src="https://www.jasonbyer.com/WinRed_logo.webp"
+                  width={100}
+                  height={40} // or any appropriate value based on the image ratio
+                  alt="WinRed Logo"
+                  priority
+                />
                 <p className="text-sm text-gray-600">Conservative Platform</p>
               </div>
             </div>
             <HamburgerMenu isOpen={isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
           </div>
 
-          {/* Mobile Menu Content */}
           <div className="flex-1 overflow-y-auto">
-            {/* Primary Navigation */}
             <div className="px-6 py-6">
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Navigation</h3>
               <div className="space-y-2">
@@ -126,11 +102,10 @@ export function Navigation() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`group flex items-center justify-between px-4 py-4 rounded-xl text-base font-medium transition-all duration-200 ${
-                      isActive(link.href)
-                        ? "bg-red-50 text-red-600 border-l-4 border-red-600 shadow-sm"
-                        : "text-gray-700 hover:bg-gray-50 hover:text-red-600"
-                    }`}
+                    className={`group flex items-center justify-between px-4 py-4 rounded-xl text-base font-medium transition-all duration-200 ${isActive(link.href)
+                      ? "bg-red-50 text-red-600 border-l-4 border-red-600 shadow-sm"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-red-600"
+                      }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <div>
@@ -138,16 +113,14 @@ export function Navigation() {
                       <div className="text-sm text-gray-500 mt-1">{link.description}</div>
                     </div>
                     <ChevronRight
-                      className={`h-5 w-5 transition-transform duration-200 ${
-                        isActive(link.href) ? "text-red-600" : "text-gray-400 group-hover:text-red-600"
-                      }`}
+                      className={`h-5 w-5 transition-transform duration-200 ${isActive(link.href) ? "text-red-600" : "text-gray-400 group-hover:text-red-600"
+                        }`}
                     />
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Donate Section */}
             <div className="px-6 py-4 bg-gradient-to-r from-red-50 to-red-100 mx-6 rounded-xl">
               <h3 className="text-sm font-semibold text-red-900 mb-3">Make an Impact</h3>
               <Link href="/donate" onClick={() => setIsMobileMenuOpen(false)}>
@@ -159,7 +132,6 @@ export function Navigation() {
               <p className="text-xs text-red-700 mt-2 text-center">Support conservative candidates and causes</p>
             </div>
 
-            {/* Quick Links */}
             <div className="px-6 py-6">
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Quick Links</h3>
               <div className="space-y-1">
@@ -177,7 +149,6 @@ export function Navigation() {
               </div>
             </div>
 
-            {/* Stats Section */}
             <div className="px-6 py-4 bg-blue-50 mx-6 rounded-xl">
               <h3 className="text-sm font-semibold text-blue-900 mb-3">Our Impact</h3>
               <div className="grid grid-cols-2 gap-4 text-center">
@@ -193,7 +164,6 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Mobile Menu Footer */}
           <div className="border-t border-gray-200 p-6 bg-gray-50">
             <div className="text-center">
               <p className="text-sm text-gray-600 mb-3">Empowering Conservative Leadership</p>

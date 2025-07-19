@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { AdminSidebar } from "@/components/admin-sidebar"
 import { AdminFooter } from "@/components/admin-footer"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 

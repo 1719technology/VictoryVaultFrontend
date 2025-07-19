@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -67,7 +68,7 @@ export default function HomePage() {
             : Array.isArray(allJson.campaigns)
               ? allJson.campaigns
               : []
-        ).map((c: any) => ({
+        ).map((c: Record<string, unknown>) => ({
           id: c.id,
           title: c.title,
           description: c.description,
@@ -103,9 +104,14 @@ export default function HomePage() {
 
         setCampaigns(list);
         setRaisedMap(map);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("An unexpected error occurred.");
+        }
+      }
+      finally {
         setLoading(false);
       }
     }
@@ -213,11 +219,14 @@ export default function HomePage() {
                   <CardHeader className="text-center">
                     <div className="w-24 h-24 mx-auto mb-4 bg-gray-200 rounded-full overflow-hidden">
                       {c.photo && (
-                        <img
-                          src={`${API}/uploads/${c.photo}`}
-                          alt={c.title}
-                          className="w-full h-full object-cover"
-                        />
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={`${API}/uploads/${c.photo}`}
+                            alt={c.title}
+                            layout="fill"
+                            objectFit="cover"
+                          />
+                        </div>
                       )}
                     </div>
                     <CardTitle className="truncate">{c.title}</CardTitle>

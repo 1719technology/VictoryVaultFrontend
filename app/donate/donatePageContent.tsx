@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -183,9 +183,14 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
       }
 
       router.push("/thank-you");
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("An unexpected error occurred.");
+      }
+    }
+    finally {
       setIsLoading(false);
     }
   };

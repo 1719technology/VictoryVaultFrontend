@@ -1,5 +1,4 @@
-import { Flag } from "lucide-react"
-import Link from "next/link"
+import Link from "next/link";
 
 export function Footer() {
   return (
@@ -93,10 +92,10 @@ export function Footer() {
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
           <p>
             &copy; {new Date().getFullYear()} VictoryVault. All rights reserved. Paid for by WinRed and not authorized by any
-            candidate or candidate's committee.
+            candidate or candidate&apos;s committee.
           </p>
         </div>
       </div>
     </footer>
-  )
+  );
 }

@@ -15,7 +15,7 @@ export default function RegisterOtpPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialEmail = searchParams.get("email") || "";
-  const [email, setEmail] = useState(initialEmail);
+  const [email] = useState(initialEmail);
   const [otp, setOtp] = useState("");
   const [timeLeft, setTimeLeft] = useState(300);
   const [isTimerActive, setIsTimerActive] = useState(true);
@@ -64,9 +64,14 @@ export default function RegisterOtpPageClient() {
       setTimeLeft(300);
       setIsTimerActive(true);
       setOtp("");
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
-    } finally {
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
+    }
+    finally {
       setIsResending(false);
     }
   };
@@ -87,9 +92,14 @@ export default function RegisterOtpPageClient() {
       }
 
       router.push("/admin");
-    } catch (err: any) {
-      setError(err.message || "Failed to verify OTP.");
-    } finally {
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
+    }
+    finally {
       setIsLoading(false);
     }
   };
@@ -102,7 +112,7 @@ export default function RegisterOtpPageClient() {
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold">Verify Your Account</CardTitle>
             <CardDescription>
-              We've sent a verification code to your email address. Please enter it below to continue.
+              We&rsquo;ve sent a verification code to your email address. Please enter it below to continue.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -131,7 +141,7 @@ export default function RegisterOtpPageClient() {
             </Button>
 
             <div className="text-center space-y-3">
-              <p className="text-sm text-gray-600">Didn't receive the code?</p>
+             <p className="text-sm text-gray-600">Didn&rsquo;t receive the code?</p>
               <Button
                 type="button"
                 variant="outline"

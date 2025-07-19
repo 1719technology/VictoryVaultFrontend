@@ -48,10 +48,10 @@ async function createCampaign(data: CampaignData): Promise<{ success: boolean; m
     formData.append("coverImage", data.coverImage)
   }
 
-  // Append gallery images
-  data.imageGallery.forEach((file, index) => {
+  // Append gallery images (removed unused 'index')
+  data.imageGallery.forEach((file) => {
     if (file instanceof File) {
-      formData.append(`imageGallery`, file)
+      formData.append("imageGallery", file)
     }
   })
 
@@ -69,7 +69,6 @@ async function createCampaign(data: CampaignData): Promise<{ success: boolean; m
       body: formData,
     })
 
-
     const result = await res.json()
     console.log("Backend response:", res.status, result)
 
@@ -83,9 +82,12 @@ async function createCampaign(data: CampaignData): Promise<{ success: boolean; m
     }
 
     return { success: true, message: result.message || "Campaign created successfully." }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Campaign creation failed:", error)
-    throw new Error(error.message || "An unexpected error occurred.")
+    if (error instanceof Error) {
+      throw new Error(error.message)
+    }
+    throw new Error("An unexpected error occurred.")
   }
 }
 
@@ -127,10 +129,11 @@ export default function CreateCampaignPage() {
 
         {message && (
           <div
-            className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${message.type === "success"
+            className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${
+              message.type === "success"
                 ? "bg-green-50 border border-green-200 text-green-800"
                 : "bg-red-50 border border-red-200 text-red-800"
-              }`}
+            }`}
           >
             {message.type === "success" ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
             <span>{message.text}</span>

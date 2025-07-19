@@ -118,14 +118,6 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
     }))
   }
 
-  const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    setFormData((prev) => ({
-      ...prev,
-      imageGallery: files,
-    }))
-  }
-
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
     setFormData((prev) => ({

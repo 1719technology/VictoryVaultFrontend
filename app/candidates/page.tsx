@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -41,7 +40,6 @@ interface Campaign {
 const PER_PAGE = 6;
 
 export default function CandidatesPage() {
-  const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
   const API_KEY = process.env.NEXT_PUBLIC_API_KEY!;
 
@@ -67,22 +65,23 @@ export default function CandidatesPage() {
         });
         if (!res.ok) throw new Error(`Error ${res.status}`);
         const json = await res.json();
-        const list: Campaign[] = (Array.isArray(json) ? json : json.campaigns || []).map((c: any) => ({
-          id: c.id,
-          title: c.title,
-          description: c.description || "",
-          office: c.office,
-          state: c.state,
+        const list: Campaign[] = (Array.isArray(json) ? json : json.campaigns || []).map((c: Record<string, unknown>) => ({
+          id: Number(c.id),
+          title: String(c.title),
+          description: String(c.description || ""),
+          office: typeof c.office === 'string' ? c.office : undefined,
+          state: typeof c.state === 'string' ? c.state : undefined,
           goal: Number(c.goal || 0),
           raised: Number(c.raised || 0),
           supporters: Number(c.supporters || 0),
-          priority: c.priority || "low",
-          photo: c.photo,
-          email: c.email,
+          priority: (c.priority as "high" | "medium" | "low") || "low",
+          photo: typeof c.photo === 'string' ? c.photo : undefined,
+          email: String(c.email),
         }));
         setAll(list);
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        if (e instanceof Error) setError(e.message);
+        else setError("An unknown error occurred");
       } finally {
         setLoading(false);
       }
@@ -203,7 +202,7 @@ export default function CandidatesPage() {
                 <Label>Sort By</Label>
                 <select
                   value={sortBy}
-                  onChange={e => setSortBy(e.target.value as any)}
+                  onChange={e => setSortBy(e.target.value as "priority" | "raised" | "name" | "state")}
                   className="mt-1 block w-full border px-3 py-2 rounded"
                 >
                   <option value="priority">Priority</option>

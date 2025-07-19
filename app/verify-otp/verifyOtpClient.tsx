@@ -12,6 +12,10 @@ import Link from "next/link";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 
+interface ApiError {
+  message?: string;
+}
+
 export default function VerifyOtpClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,15 +62,16 @@ export default function VerifyOtpClient() {
         body: JSON.stringify({ email }),
       });
       if (!res.ok) {
-        const { message } = await res.json();
+        const { message }: ApiError = await res.json();
         throw new Error(message || "OTP resend failed");
       }
       setSuccess("Verification code resent.");
       setTimeLeft(300);
       setIsTimerActive(true);
       setOtp("");
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      setError(error.message || "An unexpected error occurred");
     } finally {
       setIsResending(false);
     }
@@ -92,9 +97,10 @@ export default function VerifyOtpClient() {
       const { token } = resBody;
       localStorage.setItem("authToken", token);
       router.push("/admin");
-    } catch (err: any) {
-      console.error("Verification error:", err.message);
-      setError(err.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      console.error("Verification error:", error.message);
+      setError(error.message || "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +114,7 @@ export default function VerifyOtpClient() {
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold">Verify Your Account</CardTitle>
             <CardDescription>
-              We've sent a verification code to your email address. Please enter it below to continue.
+              We&apos;ve sent a verification code to your email address. Please enter it below to continue.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -137,7 +143,7 @@ export default function VerifyOtpClient() {
             </Button>
 
             <div className="text-center space-y-3">
-              <p className="text-sm text-gray-600">Didn't receive the code?</p>
+              <p className="text-sm text-gray-600">Didn&apos;t receive the code?</p>
               <Button
                 type="button"
                 variant="outline"

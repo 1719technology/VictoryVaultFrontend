@@ -45,12 +45,11 @@ export default function PrivacyPolicyPage() {
         <div className="prose prose-lg max-w-none">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Introduction</h2>
           <p className="mb-6">
-            WinRed ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we
+            WinRed (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we
             collect, use, disclose, and safeguard your information when you visit our website or make a contribution
             through our platform. Please read this privacy policy carefully. If you do not agree with the terms of this
             privacy policy, please do not access the site.
           </p>
-
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Information We Collect</h2>
           <p className="mb-4">
             We collect information that you voluntarily provide to us when you register on the website, express an
@@ -161,7 +160,7 @@ export default function PrivacyPolicyPage() {
 
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Controls for Do-Not-Track Features</h2>
           <p className="mb-6">
-            Most web browsers and some mobile operating systems include a Do-Not-Track ("DNT") feature or setting you
+            Most web browsers and some mobile operating systems include a Do-Not-Track (&quot;DNT&quot;) feature or setting you
             can activate to signal your privacy preference not to have data about your online browsing activities
             monitored and collected. No uniform technology standard for recognizing and implementing DNT signals has
             been finalized. As such, we do not currently respond to DNT browser signals or any other mechanism that
@@ -194,7 +193,7 @@ export default function PrivacyPolicyPage() {
           <p className="mb-6">
             We may update this privacy policy from time to time in order to reflect, for instance, changes to our
             practices or for other operational, legal or regulatory reasons. The updated version will be indicated by an
-            updated "Revised" date and the updated version will be effective as soon as it is accessible. If we make
+            updated &quot;Revised&quot; date and the updated version will be effective as soon as it is accessible. If we make
             material changes to this privacy policy, we may notify you either by prominently posting a notice of such
             changes or by directly sending you a notification. We encourage you to review this privacy policy frequently
             to be informed of how we are protecting your information.

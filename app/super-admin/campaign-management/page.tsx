@@ -76,7 +76,7 @@ export default function CampaignManagementPage() {
       }
 
       const enriched: CampaignData[] = await Promise.all(
-        data.campaigns.map(async (c: any) => {
+        data.campaigns.map(async (c: Partial<CampaignData> & { email: string; name?: string }) => {
           const raisedRes = await fetch(`${API}/api/v1/total_raised/${c.email}`, {
             headers: { Authorization: `Bearer ${token}` }
           })
@@ -89,7 +89,7 @@ export default function CampaignManagementPage() {
             creatorEmail: c.email,
             creatorName: c.creatorName || c.name || "",
             status: c.status || "active"
-          }
+          } as CampaignData
         })
       )
 
