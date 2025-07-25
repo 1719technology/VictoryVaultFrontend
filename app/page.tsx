@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
+import VVLoader from "@/components/vvloader";
 import {
   Users,
   DollarSign,
@@ -28,6 +28,7 @@ interface Campaign {
   goal?: number;
   email: string;
   photo?: string;
+  duration?: string | number;
 }
 
 interface RaisedResponse {
@@ -68,15 +69,17 @@ export default function HomePage() {
             : Array.isArray(allJson.campaigns)
               ? allJson.campaigns
               : []
-        ).map((c: Record<string, unknown>) => ({
+        ).map((c: Record<string, any>) => ({
           id: c.id,
-          title: c.title,
-          description: c.description,
-          office: c.office,
-          state: c.state,
-          goal: c.goal,
-          email: c.email,
-          photo: c.photo,
+          title: c.campaignName || "Untitled",
+          description: c.fullDescription || c.shortDescription || "",
+          office: c.campaignType || "",          // showing type as office
+          state: c.recipientRelationship || "",  // show relationship here (or add new field)
+          goal: c.fundingGoal || 0,
+          email: c.email || "",
+          photo: c.heroImage || "",
+          // You can also store duration and other fields for later usage:
+          duration: c.campaignDuration || "",
         }));
 
         // 2) for each, fetch total raised
@@ -143,13 +146,8 @@ export default function HomePage() {
       maximumFractionDigits: 0,
     });
 
-  if (loading) return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-      <div className="text-5xl font-extrabold text-red-600 animate-pulse tracking-widest">
-        VV
-      </div>
-    </div>
-  );
+  if (loading) return <VVLoader />;
+
   if (error) return <p className="p-8 text-red-600 text-center">{error}</p>;
 
   return (
@@ -221,7 +219,7 @@ export default function HomePage() {
                       {c.photo && (
                         <div className="relative w-full h-full">
                           <Image
-                            src={`${API}/uploads/${c.photo}`}
+                            src={c.photo}
                             alt={c.title}
                             layout="fill"
                             objectFit="cover"
@@ -229,14 +227,19 @@ export default function HomePage() {
                         </div>
                       )}
                     </div>
+
                     <CardTitle className="truncate">{c.title}</CardTitle>
-                    {c.office && c.state && (
-                      <div className="text-red-600">{c.office} • {c.state}</div>
+
+                    <div className="text-red-600 mt-1">
+                      Type: {c.office || "N/A"} • Relationship: {c.state || "N/A"}
+                    </div>
+
+                    {c.duration && (
+                      <div className="text-gray-600 text-sm">Duration: {c.duration} days</div>
                     )}
+
                     {c.description && (
-                      <p className="text-gray-600 mt-2 mb-4 line-clamp-3">
-                        {c.description}
-                      </p>
+                      <p className="text-gray-600 mt-2 mb-4 line-clamp-3">{c.description}</p>
                     )}
                   </CardHeader>
                   <CardContent>
@@ -256,7 +259,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
-                      Support {c.title.split(" ")[0]}
+                      Support {c.title ? c.title.split(" ")[0] : "Campaign"}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>

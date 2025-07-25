@@ -3,6 +3,7 @@
 import React, { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import VVLoader from "@/components/vvloader";
 import {
   Card,
   CardHeader,
@@ -196,9 +197,12 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
   };
 
   return (
+  <>
+    {/* Loader at top-level */}
+    {isLoading && <VVLoader />}
+
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navigation />
-
       <section className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-12">
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex justify-center mb-4">
@@ -490,12 +494,11 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
               {isLoading ? "Processing…" : <><Shield className="mr-2 inline" /> Donate ${getCurrentAmount()}</>}
             </Button>
           </div>
-
           {error && <p className="text-red-600 text-center mt-4">{error}</p>}
         </form>
       </div>
-
       <Footer />
     </div>
+    </>
   )
 };

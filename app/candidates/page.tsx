@@ -65,18 +65,18 @@ export default function CandidatesPage() {
         });
         if (!res.ok) throw new Error(`Error ${res.status}`);
         const json = await res.json();
-        const list: Campaign[] = (Array.isArray(json) ? json : json.campaigns || []).map((c: Record<string, unknown>) => ({
+        const list: Campaign[] = (Array.isArray(json) ? json : json.campaigns || []).map((c: any) => ({
           id: Number(c.id),
-          title: String(c.title),
-          description: String(c.description || ""),
+          title: c.campaignName || c.title || "",
+          description: c.fullDescription || c.shortDescription || c.description || "",
           office: typeof c.office === 'string' ? c.office : undefined,
           state: typeof c.state === 'string' ? c.state : undefined,
-          goal: Number(c.goal || 0),
-          raised: Number(c.raised || 0),
-          supporters: Number(c.supporters || 0),
+          goal: Number(c.fundingGoal ?? c.goal ?? 0),
+          raised: Number(c.amount_donated ?? c.raised ?? 0),
+          supporters: Number(c.supporters ?? 0),
           priority: (c.priority as "high" | "medium" | "low") || "low",
-          photo: typeof c.photo === 'string' ? c.photo : undefined,
-          email: String(c.email),
+          photo: c.heroImage || c.photo || "",
+          email: c.email || "",
         }));
         setAll(list);
       } catch (e: unknown) {
@@ -240,10 +240,11 @@ export default function CandidatesPage() {
                       <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden">
                         {c.photo && (
                           <img
-                            src={`${API}/uploads/${c.photo}`}
+                            src={c.photo}
                             alt={c.title}
                             className="w-full h-full object-cover"
                           />
+
                         )}
                       </div>
                       <div className="min-w-0">

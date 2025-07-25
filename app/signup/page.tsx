@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
+import VVLoader from "@/components/vvloader";
 import {
   Mail,
   Lock,
@@ -21,15 +22,17 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  Upload,
   Eye,
   EyeOff,
   Check,
   X,
   Flag,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
+import { CldUploadWidget, CldImage } from "next-cloudinary";
 
+// -------------------- Interfaces --------------------
 interface FormData {
   firstName: string;
   lastName: string;
@@ -37,7 +40,7 @@ interface FormData {
   password: string;
   confirmPassword: string;
   phone: string;
-  profilePicture: File | null;
+  profilePicture: string | null; // Cloudinary URL
   organizationName: string;
   website: string;
   role: "user" | "donor" | "campaigner" | "admin" | "";
@@ -50,6 +53,7 @@ interface FormData {
   dateOfBirth: string;
   incorporationDate: string;
   governmentId: File | null;
+  governmentIdBase64: string;
   taxId: string;
   accountNumber: string;
   routingNumber: string;
@@ -59,6 +63,7 @@ interface FormData {
   smsNotifications: boolean;
 }
 
+// -------------------- Component --------------------
 export default function RegisterPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
@@ -75,7 +80,7 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     phone: "",
-    profilePicture: null,
+    profilePicture: null, // Cloudinary URL
     organizationName: "",
     website: "",
     role: "",
@@ -88,6 +93,7 @@ export default function RegisterPage() {
     dateOfBirth: "",
     incorporationDate: "",
     governmentId: null,
+    governmentIdBase64: "",
     taxId: "",
     accountNumber: "",
     routingNumber: "",
@@ -99,14 +105,54 @@ export default function RegisterPage() {
 
   const totalSteps = 6;
 
+  // -------------------- Helpers --------------------
   const handleInputChange = (field: keyof FormData, value: string | boolean | File | null) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleFileUpload = (field: keyof FormData, file: File | null) => {
-    setFormData((prev) => ({ ...prev, [field]: file }));
+  const handleCloudinaryUpload = (result: any) => {
+    if (result?.event === "success") {
+      const url = result.info.secure_url;
+      setFormData((prev) => ({ ...prev, profilePicture: url }));
+    }
   };
 
+  // Convert government ID to Base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleFileUpload = async (file: File | null) => {
+    if (!file) {
+      setFormData((prev) => ({ ...prev, governmentId: null, governmentIdBase64: "" }));
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File size exceeds 10MB limit.");
+      return;
+    }
+
+    try {
+      const base64 = await fileToBase64(file);
+      setFormData((prev) => ({
+        ...prev,
+        governmentId: file,
+        governmentIdBase64: base64,
+      }));
+      setError(null);
+    } catch {
+      setError("Failed to process file.");
+    }
+  };
+
+  // Password validation
+  // -------------------- Password validation --------------------
   const validatePassword = (password: string) => {
     const requirements = {
       length: password.length >= 8,
@@ -120,51 +166,63 @@ export default function RegisterPage() {
 
   const passwordRequirements = validatePassword(formData.password);
   const isPasswordValid = Object.values(passwordRequirements).every(Boolean);
+  const isPasswordMatch = formData.password === formData.confirmPassword;
 
-  const nextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
 
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  const nextStep = () => currentStep < totalSteps && setCurrentStep(currentStep + 1);
+  const prevStep = () => currentStep > 1 && setCurrentStep(currentStep - 1);
 
+  // -------------------- Submit --------------------
   const handleSubmit = async () => {
     setIsLoading(true);
     setError(null);
+
     try {
-      const payload = { ...formData };
-      console.log("Sending registration payload:", payload);
+      const payload = {
+        ...formData,
+        governmentId: formData.governmentIdBase64, // send as string
+      };
+
+      delete (payload as any).governmentIdBase64;
+      delete (payload as any).governmentId;
+
+      console.log("🔍 Payload being sent to API:", payload);
 
       const res = await fetch(`${API}/api/v1/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const json = await res.json();
-      console.log("API response:", json);
+      console.log("🔍 Response status:", res.status, res.statusText);
 
-      if (!res.ok) {
-        throw new Error(json.message || "Registration failed");
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) throw new Error(json?.message || `Error ${res.status}`);
+
+      window.location.href = `/register-otp?email=${formData.email}`;
+    } catch (err) {
+      let message = "Unexpected error occurred";
+
+      if (err instanceof Error) {
+        message = err.message;
       }
 
-      console.log("Registration succeeded:", json.message);
-      window.location.href = "/register-otp?email=" + formData.email;
-    } catch (err) {
-      console.error("Registration error:", err);
-      const message = err instanceof Error ? err.message : "Unexpected error occurred";
-      setError(message);
+      // Log API response for debugging
+      console.error("❌ Registration error:", message);
+
+      // Show user-friendly message for 400 errors
+      if (message.includes("400") || message.toLowerCase().includes("bad request")) {
+        setError("Invalid input: Please review your details and try again.");
+      } else {
+        setError(message);
+      }
     } finally {
       setIsLoading(false);
     }
-  }
+  };
+
+  // -------------------- UI Data --------------------
   const timeZones = [
     "Eastern Time (ET)",
     "Central Time (CT)",
@@ -172,9 +230,10 @@ export default function RegisterPage() {
     "Pacific Time (PT)",
     "Alaska Time (AKT)",
     "Hawaii Time (HT)",
-  ]
+  ];
+  const countries = ["United States", "Canada", "United Kingdom", "Australia", "Other"];
 
-  const countries = ["United States", "Canada", "United Kingdom", "Australia", "Other"]
+  // -------------------- Step Rendering --------------------
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -185,11 +244,51 @@ export default function RegisterPage() {
               <p className="text-gray-600">Let&apos;s start with your basic information</p>
             </div>
 
+            {/* Profile picture via Cloudinary */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Profile Picture</Label>
+              <CldUploadWidget
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                options={{
+                  sources: ["local", "camera"],
+                  multiple: false,
+                  maxFiles: 1,
+                  clientAllowedFormats: ["jpg", "png", "jpeg", "gif"],
+                  maxFileSize: 10000000,
+                }}
+                onSuccess={handleCloudinaryUpload}
+              >
+                {({ open }: { open: () => void }) => (
+                  <div
+                    onClick={() => open()}
+                    className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-red-400 transition-colors cursor-pointer"
+                  >
+                    <div className="space-y-1 text-center">
+                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                      <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                  </div>
+                )}
+              </CldUploadWidget>
+              {formData.profilePicture && (
+                <div className="mt-4">
+                  <CldImage
+                    width="100"
+                    height="100"
+                    src={formData.profilePicture}
+                    alt="Profile Preview"
+                    className="rounded-full mx-auto border border-gray-200"
+                  />
+                  <p className="text-xs text-green-600 mt-1">✓ Uploaded successfully</p>
+                </div>
+              )}
+            </div>
+
+            {/* First name, last name, email, password, phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
-                  First Name *
-                </Label>
+                <Label htmlFor="firstName">First Name *</Label>
                 <Input
                   id="firstName"
                   type="text"
@@ -200,9 +299,7 @@ export default function RegisterPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
-                  Last Name *
-                </Label>
+                <Label htmlFor="lastName">Last Name *</Label>
                 <Input
                   id="lastName"
                   type="text"
@@ -215,9 +312,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                Email Address *
-              </Label>
+              <Label htmlFor="email">Email Address *</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -231,10 +326,10 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Password */}
+            {/* Password */}
             <div>
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password *
-              </Label>
+              <Label htmlFor="password">Password *</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -254,70 +349,21 @@ export default function RegisterPage() {
                 </button>
               </div>
 
-              {/* Password Requirements */}
-              {formData.password && (
-                <div className="mt-2 space-y-1">
-                  <div className="text-xs text-gray-600">Password must contain:</div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div
-                      className={`flex items-center ${passwordRequirements.length ? "text-green-600" : "text-gray-400"}`}
-                    >
-                      {passwordRequirements.length ? (
-                        <Check className="h-3 w-3 mr-1" />
-                      ) : (
-                        <X className="h-3 w-3 mr-1" />
-                      )}
-                      8+ characters
-                    </div>
-                    <div
-                      className={`flex items-center ${passwordRequirements.uppercase ? "text-green-600" : "text-gray-400"}`}
-                    >
-                      {passwordRequirements.uppercase ? (
-                        <Check className="h-3 w-3 mr-1" />
-                      ) : (
-                        <X className="h-3 w-3 mr-1" />
-                      )}
-                      Uppercase letter
-                    </div>
-                    <div
-                      className={`flex items-center ${passwordRequirements.lowercase ? "text-green-600" : "text-gray-400"}`}
-                    >
-                      {passwordRequirements.lowercase ? (
-                        <Check className="h-3 w-3 mr-1" />
-                      ) : (
-                        <X className="h-3 w-3 mr-1" />
-                      )}
-                      Lowercase letter
-                    </div>
-                    <div
-                      className={`flex items-center ${passwordRequirements.number ? "text-green-600" : "text-gray-400"}`}
-                    >
-                      {passwordRequirements.number ? (
-                        <Check className="h-3 w-3 mr-1" />
-                      ) : (
-                        <X className="h-3 w-3 mr-1" />
-                      )}
-                      Number
-                    </div>
-                    <div
-                      className={`flex items-center ${passwordRequirements.special ? "text-green-600" : "text-gray-400"}`}
-                    >
-                      {passwordRequirements.special ? (
-                        <Check className="h-3 w-3 mr-1" />
-                      ) : (
-                        <X className="h-3 w-3 mr-1" />
-                      )}
-                      Special character
-                    </div>
-                  </div>
-                </div>
+              {/* Password Guidance */}
+              {!isPasswordValid && (
+                <ul className="mt-2 text-xs text-red-600 list-disc ml-5">
+                  {!passwordRequirements.length && <li>At least 8 characters long</li>}
+                  {!passwordRequirements.uppercase && <li>Must contain an uppercase letter</li>}
+                  {!passwordRequirements.lowercase && <li>Must contain a lowercase letter</li>}
+                  {!passwordRequirements.number && <li>Must contain a number</li>}
+                  {!passwordRequirements.special && <li>Must contain a special character (!@#$%^&*)</li>}
+                </ul>
               )}
             </div>
 
+            {/* Confirm Password */}
             <div>
-              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
-                Confirm Password *
-              </Label>
+              <Label htmlFor="confirmPassword">Confirm Password *</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -336,18 +382,16 @@ export default function RegisterPage() {
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                <div className="mt-1 text-xs text-red-600 flex items-center">
-                  <X className="h-3 w-3 mr-1" />
-                  Passwords do not match
-                </div>
+
+              {/* Password Mismatch Guidance */}
+              {!isPasswordMatch && formData.confirmPassword.length > 0 && (
+                <p className="mt-2 text-xs text-red-600">Passwords do not match</p>
               )}
             </div>
 
+            {/* Phone */}
             <div>
-              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                Phone Number *
-              </Label>
+              <Label htmlFor="phone">Phone Number *</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -356,44 +400,12 @@ export default function RegisterPage() {
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   className="pl-10 border-gray-300 focus:border-red-500 focus:ring-red-500"
-                  placeholder="(555) 123-4567"
                   required
                 />
               </div>
             </div>
-
-            <div>
-              <Label htmlFor="profilePicture" className="text-sm font-medium text-gray-700">
-                Profile Picture (Optional)
-              </Label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-red-400 transition-colors">
-                <div className="space-y-1 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="profilePicture"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-red-600 hover:text-red-500"
-                    >
-                      <span>Upload a file</span>
-                      <input
-                        id="profilePicture"
-                        type="file"
-                        className="sr-only"
-                        accept="image/*"
-                        onChange={(e) => handleFileUpload("profilePicture", e.target.files?.[0] || null)}
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                </div>
-              </div>
-              {formData.profilePicture && (
-                <div className="mt-2 text-sm text-green-600">✓ {formData.profilePicture.name}</div>
-              )}
-            </div>
           </div>
-        )
+        );
 
       case 2:
         return (
@@ -655,7 +667,7 @@ export default function RegisterPage() {
                         type="file"
                         className="sr-only"
                         accept="image/*,.pdf"
-                        onChange={(e) => handleFileUpload("governmentId", e.target.files?.[0] || null)}
+                        onChange={(e) => handleFileUpload(e.target.files?.[0] || null)}
                       />
                     </label>
                     <p className="pl-1">or drag and drop</p>
@@ -664,9 +676,20 @@ export default function RegisterPage() {
                   <p className="text-xs text-gray-500">PDF, PNG, JPG up to 10MB</p>
                 </div>
               </div>
-              {formData.governmentId && (
-                <div className="mt-2 text-sm text-green-600">✓ {formData.governmentId.name}</div>
+              {formData.governmentId && formData.governmentIdBase64 && (
+                <div className="mt-2">
+                  {formData.governmentId.type === "application/pdf" ? (
+                    <p className="text-xs text-green-600">✓ {formData.governmentId.name} (PDF uploaded)</p>
+                  ) : (
+                    <img
+                      src={formData.governmentIdBase64}
+                      alt="Government ID Preview"
+                      className="w-32 h-20 object-cover border border-gray-300 rounded"
+                    />
+                  )}
+                </div>
               )}
+
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -850,6 +873,10 @@ export default function RegisterPage() {
   }
 
   return (
+  <>
+    {/* Loader at top-level */}
+    {isLoading && <VVLoader />}
+
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navigation />
 
@@ -956,5 +983,6 @@ export default function RegisterPage() {
 
       <Footer />
     </div>
+    </>
   )
 }

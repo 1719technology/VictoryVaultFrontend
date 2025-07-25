@@ -19,6 +19,7 @@ import {
   Upload,
   Heart,
 } from "lucide-react"
+import { CldUploadWidget } from "next-cloudinary"
 
 export type CampaignData = {
   id?: string
@@ -28,12 +29,12 @@ export type CampaignData = {
   visibility: "public" | "private"
   targetAmount: number
   currency: string
-  duration: number
+  duration: string
   endDate: string
   description: string
-  coverImage: File | null
+  coverImage: string;        // URL instead of File
+  imageGallery: string[];    // Array of URLs instead of File[]
   videoUrl: string
-  imageGallery: File[]
   recipientName: string
   recipientOrganization: string
   recipientRelationship: string
@@ -60,41 +61,47 @@ interface CampaignFormProps {
   onCancel?: () => void
 }
 
+export type CampaignApiPayload = Omit<CampaignData, 'coverImage' | 'imageGallery'> & {
+  coverImage: string;       // Base64 string
+  imageGallery: string[];
+  userId?: string;
+};
+
+
 export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: CampaignFormProps) {
   const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState<CampaignData>(
-    initialData || {
-      title: "",
-      tagline: "",
-      category: "Political",
-      visibility: "public",
-      targetAmount: 0,
-      currency: "USD",
-      duration: 30,
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      description: "",
-      coverImage: null,
-      videoUrl: "",
-      imageGallery: [],
-      recipientName: "",
-      recipientOrganization: "",
-      recipientRelationship: "Self",
-      fundDelivery: "direct",
-      donorUpdates: true,
-      facebookSharing: true,
-      twitterSharing: true,
-      linkedInSharing: false,
-      refundPolicy: "",
-      disbursementSchedule: "",
-      disclaimers: "",
-      termsAccepted: false,
-      advancedFeaturesEnabled: false,
-      teamCollaboration: false,
-      customDonationAmounts: false,
-      donorRecognition: false,
-      analyticsIntegration: false,
-    },
-  )
+  const [formData, setFormData] = useState<CampaignData>({
+    title: "",
+    tagline: "",
+    category: "Political",
+    visibility: "public",
+    targetAmount: 0,
+    currency: "USD",
+    duration: "30",
+    endDate: new Date().toISOString().split("T")[0],
+    description: "",
+    coverImage: "",
+    videoUrl: "",
+    imageGallery: [],
+    recipientName: "",
+    recipientOrganization: "",
+    recipientRelationship: "Self",
+    fundDelivery: "direct",
+    donorUpdates: false,
+    facebookSharing: false,
+    twitterSharing: false,
+    linkedInSharing: false,
+    refundPolicy: "",
+    disbursementSchedule: "",
+    disclaimers: "",
+    termsAccepted: false,
+    advancedFeaturesEnabled: false,
+    teamCollaboration: false,
+    customDonationAmounts: false,
+    donorRecognition: false,
+    analyticsIntegration: false,
+  });
+
 
   useEffect(() => {
     if (initialData) {
@@ -110,29 +117,31 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
     }))
   }
 
+  // Remove file handling since we're using URLs instead
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
+    const { value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      coverImage: file,
-    }))
-  }
+      coverImage: value, // Directly set URL string
+    }));
+  };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target
+    const { id, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [id]: Number.parseInt(value) || 0,
-    }))
-  }
+    }));
+  };
 
-  const handleNext = () => setStep((prev) => prev + 1)
-  const handleBack = () => setStep((prev) => prev - 1)
+  const handleNext = () => setStep((prev) => prev + 1);
+  const handleBack = () => setStep((prev) => prev - 1);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await onSubmit(formData)
-  }
+    e.preventDefault();
+    await onSubmit(formData);
+  };
+
 
   const steps = [
     {
@@ -235,7 +244,7 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="duration">Duration (days)</Label>
-              <Input id="duration" type="number" value={formData.duration} onChange={handleNumberChange} min="1" />
+              <Input id="duration" type="text" value={formData.duration} onChange={handleChange} />
             </div>
             <div>
               <Label htmlFor="endDate">End Date</Label>
@@ -264,17 +273,45 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label htmlFor="coverImage">Upload Cover Image</Label>
-              <Input
-                id="coverImage"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-              {formData.coverImage && (
-                <p className="text-sm text-gray-600 mt-1">{formData.coverImage.name}</p>
-              )}
+              <Label>Cover Image</Label>
+              <CldUploadWidget
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || ''}
+                options={{
+                  multiple: false,
+                  maxFiles: 1,
+                  clientAllowedFormats: ['jpg', 'png', 'jpeg'],
+                  maxFileSize: 10000000,
+                }}
+                onUpload={(result) => {
+                  if (result.event === 'success' && result.info?.secure_url) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      coverImage: result.info.secure_url,
+                    }));
+                  }
+                }}
+              >
+                {({ open }) => (
+                  <button
+                    type="button"
+                    onClick={() => open && open()}
+                    className="border p-3 rounded-md text-gray-600 hover:text-red-600"
+                  >
+                    Upload Hero Image
+                  </button>
+                )}
+              </CldUploadWidget>
 
+              {formData.coverImage && (
+                <div className="mt-3">
+                  <img
+                    src={formData.coverImage}
+                    alt="Cover Preview"
+                    className="w-full h-40 object-cover rounded-md border"
+                  />
+                  <p className="text-xs text-green-600 mt-1">✓ Uploaded successfully</p>
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="videoUrl">Video URL</Label>
@@ -287,22 +324,41 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
               />
             </div>
           </div>
-          <div>
-            <Label className="text-sm font-medium text-gray-700">Image Gallery</Label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-red-400 transition-colors">
-              <div className="space-y-1 text-center">
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="flex text-sm text-gray-600">
-                  <label className="relative cursor-pointer bg-white rounded-md font-medium text-red-600 hover:text-red-500">
-                    <span>Upload images</span>
-                    <input type="file" className="sr-only" accept="image/*" multiple />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each (max 10 images)</p>
-              </div>
+          <CldUploadWidget
+            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || ''}
+            options={{
+              multiple: true,
+              maxFiles: 5,
+              clientAllowedFormats: ['jpg', 'png', 'jpeg'],
+              maxFileSize: 10000000,
+            }}
+            onUpload={(result) => {
+              if (result.event === 'success' && result.info?.secure_url) {
+                setFormData((prev) => ({
+                  ...prev,
+                  imageGallery: [...prev.imageGallery, result.info.secure_url],
+                }));
+              }
+            }}
+          >
+            {({ open }) => (
+              <button
+                type="button"
+                onClick={() => open && open()}
+                className="border p-3 rounded-md text-gray-600 hover:text-red-600 mt-3"
+              >
+                Upload Gallery Images
+              </button>
+            )}
+          </CldUploadWidget>
+
+          {formData.imageGallery.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              {formData.imageGallery.map((img, index) => (
+                <img key={index} src={img} className="h-24 object-cover rounded-md border" />
+              ))}
             </div>
-          </div>
+          )}
         </CardContent>
       ),
     },

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import VVLoader from "@/components/vvloader";
 import {
   Card,
   CardContent,
@@ -89,10 +90,12 @@ export default function SignInPage() {
         body: JSON.stringify({ email, otp }),
       });
 
-      const { token, message } = await res.json();
-      if (!res.ok) throw new Error(message || "OTP verification failed");
-
-      localStorage.setItem("authToken", token);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "OTP verification failed");
+      localStorage.setItem("authToken", json.token);
+      if (json.user?.id) {
+        localStorage.setItem("userId", json.user.id);
+      }
       router.push("/admin");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -106,9 +109,12 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex flex-col">
-      <Navigation />
-
+    <>
+      {/* Loader at top-level */}
+      {isLoading && <VVLoader />}
+  
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+        <Navigation />
       <main className="flex-grow flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
@@ -295,5 +301,6 @@ export default function SignInPage() {
       </main>
       <Footer />
     </div>
+    </>
   );
 }

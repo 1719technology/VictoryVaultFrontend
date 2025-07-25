@@ -96,7 +96,7 @@ export default function VerifyOtpClient() {
 
       const { token } = resBody;
       localStorage.setItem("authToken", token);
-      router.push("/admin");
+      router.push("/signin");
     } catch (err: unknown) {
       const error = err as ApiError;
       console.error("Verification error:", error.message);
