@@ -4,15 +4,16 @@ import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import VVLoader from "@/components/vvloader";
+
 interface Campaign {
   id: number;
-  name: string;                     // from campaignName
+  name: string;                     
   shortDescription: string;
-  description: string;               // from fullDescription
-  campaignType: string;              // political, etc.
+  description: string;               
+  campaignType: string;
   category: string;
   fundingGoal: number;
-  fundingRaised: number;             // from amount_donated
+  fundingRaised: number;             
   currency: string;
   heroImage: string;
   additionalImages: string[];
@@ -36,7 +37,6 @@ interface Campaign {
   analyticsIntegration: boolean;
   status: 'Active' | 'Paused' | 'Deleted';
 }
-
 
 export default function AdminPage() {
   const router = useRouter();
@@ -70,7 +70,7 @@ export default function AdminPage() {
       .then(async (res) => {
         if (!res.ok) throw new Error('Error loading campaigns');
         const data = await res.json();
-        console.log("API Campaign Data:", data); // <-- Add this line
+
         const arr: Campaign[] = (
           Array.isArray(data) ? data : (data as { campaigns?: unknown[] }).campaigns ?? []
         ).map((obj: any) => ({
@@ -78,7 +78,7 @@ export default function AdminPage() {
           name: obj.campaignName,
           shortDescription: obj.shortDescription,
           description: obj.fullDescription,
-          campaignType: obj.campaignType ?? obj.category, // fallback
+          campaignType: obj.campaignType ?? obj.category,
           category: obj.category,
           fundingGoal: Number(obj.fundingGoal),
           fundingRaised: Number(obj.amount_donated ?? 0),
@@ -111,7 +111,7 @@ export default function AdminPage() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Unexpected error'))
       .finally(() => setLoading(false));
 
-    // Fetch total raised separately, ignore errors
+    // Fetch total raised separately
     fetch(`${API}/api/v1/total_raised/${userId}`, { headers })
       .then(async (res) => {
         if (!res.ok) return;
@@ -121,9 +121,7 @@ export default function AdminPage() {
           setTotalRaised((totalData as TotalDataResponse).totalRaised);
         }
       })
-      .catch(() => {
-        // silently ignore errors
-      });
+      .catch(() => {});
   }, [API, router]);
 
   const activeCount = campaigns.filter((c) => c.status === 'Active').length;
@@ -192,13 +190,8 @@ export default function AdminPage() {
     setToDeleteId(null);
   };
 
-  const viewCampaign = (id: number) => {
-    router.push(`/admin/campaign/${id}`); // navigate to details page
-  };
-
   return (
     <>
-      {/* Loader at top-level */}
       {loading && <VVLoader />}
 
       {!loading && (
@@ -228,6 +221,8 @@ export default function AdminPage() {
               </div>
             </div>
           </header>
+
+          {/* Dashboard Header */}
           <main className="p-6">
             <div className="flex justify-between items-center mb-6">
               <div className="text-2xl font-bold">Dashboard</div>
@@ -263,12 +258,26 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Campaign Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {campaigns.map((c) => (
                 <div
                   key={c.id}
-                  className="bg-white shadow rounded-lg border border-gray-200 p-4 flex flex-col"
+                  className="bg-white shadow rounded-lg border border-gray-200 p-4 flex flex-col relative"
                 >
+                  {/* Status Banner */}
+                  {c.status !== 'Active' && (
+                    <div
+                      className={`absolute top-2 right-2 text-xs px-2 py-1 rounded ${
+                        c.status === 'Paused'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {c.status === 'Paused' ? 'Paused by Admin' : 'Deleted by Admin'}
+                    </div>
+                  )}
+
                   {/* Header with circle image */}
                   <div className="flex items-center space-x-4 mb-4">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100">
@@ -337,7 +346,6 @@ export default function AdminPage() {
                     <button
                       className="text-yellow-600 hover:underline"
                       onClick={() => {
-                        // Save FULL campaign object
                         localStorage.setItem("selectedCampaign", JSON.stringify(c));
                         router.push(`/admin/campaign/${c.id}/edit`);
                       }}
@@ -355,7 +363,7 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Actions Section */}
             <section className="mt-12">
               <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -381,61 +389,56 @@ export default function AdminPage() {
             </section>
 
             {/* Delete Modal */}
-            {
-              toDeleteId !== null && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                  <div className="bg-white p-6 rounded-lg shadow max-w-sm w-full">
-                    <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
-                    <p className="mb-4 text-gray-600">Are you sure you want to delete this campaign?</p>
-                    <div className="flex justify-end space-x-3">
-                      <button onClick={cancelDelete} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                      <button onClick={doDelete} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
-                    </div>
+            {toDeleteId !== null && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div className="bg-white p-6 rounded-lg shadow max-w-sm w-full">
+                  <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
+                  <p className="mb-4 text-gray-600">Are you sure you want to delete this campaign?</p>
+                  <div className="flex justify-end space-x-3">
+                    <button onClick={cancelDelete} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                    <button onClick={doDelete} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
                   </div>
                 </div>
-              )
-            }
+              </div>
+            )}
 
             {/* Edit Modal */}
-            {
-              editingCampaign && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                  <form onSubmit={submitEdit} className="bg-white p-6 rounded shadow w-full max-w-md">
-                    <h3 className="text-lg font-semibold mb-4">Edit Campaign</h3>
-                    <div className="space-y-4">
-                      <input
-                        type="text"
-                        className="w-full border px-4 py-2 rounded"
-                        placeholder="Campaign Title"
-                        value={editForm.name ?? ''}
-                        onChange={(e) => handleEditChange('name', e.target.value)}
-                      />
-                      <textarea
-                        className="w-full border px-4 py-2 rounded"
-                        placeholder="Description"
-                        value={editForm.description ?? ''}
-                        onChange={(e) => handleEditChange('description', e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        className="w-full border px-4 py-2 rounded"
-                        placeholder="Funding Goal"
-                        value={editForm.fundingGoal ?? 0}
-                        onChange={(e) => handleEditChange('fundingGoal', Number(e.target.value))}
-                      />
-                    </div>
-                    <div className="flex justify-end space-x-3 mt-6">
-                      <button onClick={closeEditModal} type="button" className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                      <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
-                    </div>
-                  </form>
-                </div>
-              )
-            }
-          </main >
-        </div >
+            {editingCampaign && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <form onSubmit={submitEdit} className="bg-white p-6 rounded shadow w-full max-w-md">
+                  <h3 className="text-lg font-semibold mb-4">Edit Campaign</h3>
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      className="w-full border px-4 py-2 rounded"
+                      placeholder="Campaign Title"
+                      value={editForm.name ?? ''}
+                      onChange={(e) => handleEditChange('name', e.target.value)}
+                    />
+                    <textarea
+                      className="w-full border px-4 py-2 rounded"
+                      placeholder="Description"
+                      value={editForm.description ?? ''}
+                      onChange={(e) => handleEditChange('description', e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      className="w-full border px-4 py-2 rounded"
+                      placeholder="Funding Goal"
+                      value={editForm.fundingGoal ?? 0}
+                      onChange={(e) => handleEditChange('fundingGoal', Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <button onClick={closeEditModal} type="button" className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </main>
+        </div>
       )}
     </>
-
   );
 }

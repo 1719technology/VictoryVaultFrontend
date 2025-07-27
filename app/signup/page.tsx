@@ -54,7 +54,7 @@ interface FormData {
   incorporationDate: string;
   governmentId: File | null;
   governmentIdBase64: string;
-  taxId: string;
+  //taxId: string;
   accountNumber: string;
   routingNumber: string;
   agreeToTerms: boolean;
@@ -94,7 +94,7 @@ export default function RegisterPage() {
     incorporationDate: "",
     governmentId: null,
     governmentIdBase64: "",
-    taxId: "",
+    //taxId: "",
     accountNumber: "",
     routingNumber: "",
     agreeToTerms: false,
@@ -178,25 +178,27 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-      const payload = {
-        ...formData,
-        governmentId: formData.governmentIdBase64, // send as string
-      };
+          const payload = { ...formData };
 
       delete (payload as any).governmentIdBase64;
       delete (payload as any).governmentId;
 
       console.log("🔍 Payload being sent to API:", payload);
-
       const res = await fetch(`${API}/api/v1/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      console.log("🔍 Response status:", res.status, res.statusText);
+      console.log("🔍 [REGISTER] Response status:", res.status, res.statusText);
 
-      const json = await res.json().catch(() => ({}));
+      let json;
+      try {
+        json = await res.json();
+        console.log("🔍 [REGISTER] Response JSON:", json);
+      } catch {
+        console.log("🔍 [REGISTER] No JSON body in response");
+      }
 
       if (!res.ok) throw new Error(json?.message || `Error ${res.status}`);
 
@@ -531,7 +533,7 @@ export default function RegisterPage() {
                 </div>
               </div>
             </>
-            {(formData.role !== "")
+            {/* {(formData.role !== "")
               && (
                 <div>
                   <Label htmlFor="taxId" className="text-sm font-medium text-gray-700">
@@ -547,7 +549,7 @@ export default function RegisterPage() {
                     required
                   />
                 </div>
-              )}
+              )} */}
           </div>
         )
 
@@ -649,7 +651,7 @@ export default function RegisterPage() {
               <p className="text-gray-600">Upload your government-issued ID for verification</p>
             </div>
 
-            <div>
+            {/* <div>
               <Label htmlFor="governmentId" className="text-sm font-medium text-gray-700">
                 Government-issued ID *
               </Label>
@@ -690,7 +692,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
-            </div>
+            </div> */}
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start">
@@ -871,118 +873,117 @@ export default function RegisterPage() {
         return null
     }
   }
-
   return (
-  <>
-    {/* Loader at top-level */}
-    {isLoading && <VVLoader />}
+    <>
+      {/* Loader at top-level */}
+      {isLoading && <VVLoader />}
 
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <Navigation />
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+        <Navigation />
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="bg-red-100 p-3 rounded-full">
-              <Flag className="h-8 w-8 text-red-600" />
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="bg-red-100 p-3 rounded-full">
+                <Flag className="h-8 w-8 text-red-600" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Join VictoryVault</h1>
+            <p className="mt-2 text-gray-600">Create your account to start supporting conservative causes</p>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                Step {currentStep} of {totalSteps}
+              </span>
+              <span className="text-sm text-gray-500">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-red-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+              ></div>
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Join VictoryVault</h1>
-          <p className="mt-2 text-gray-600">Create your account to start supporting conservative causes</p>
-        </div>
 
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              Step {currentStep} of {totalSteps}
-            </span>
-            <span className="text-sm text-gray-500">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-red-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            ></div>
-          </div>
-        </div>
+          {/* Form Card */}
+          <Card className="border-red-100 shadow-lg">
+            <CardContent className="p-8">{renderStep()}</CardContent>
+          </Card>
 
-        {/* Form Card */}
-        <Card className="border-red-100 shadow-lg">
-          <CardContent className="p-8">{renderStep()}</CardContent>
-        </Card>
-
-        {error && (
-          <div className="mt-4 text-sm text-red-600 bg-red-100 border border-red-200 rounded p-3">
-            {error}
-          </div>
-        )}
-
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8">
-          <Button
-            variant="outline"
-            onClick={prevStep}
-            disabled={currentStep === 1}
-            className="border-gray-300 hover:border-red-500 bg-transparent"
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Previous
-          </Button>
-
-          {currentStep < totalSteps ? (
-            <Button
-              onClick={nextStep}
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={
-                (currentStep === 1 &&
-                  (!formData.firstName ||
-                    !formData.lastName ||
-                    !formData.email ||
-                    !isPasswordValid ||
-                    formData.password !== formData.confirmPassword ||
-                    !formData.phone)) ||
-                (currentStep === 2 &&
-                  (!formData.role ||
-                    !formData.organizationName ||
-                    !formData.incorporationDate ||
-                    !formData.taxId ||
-                    !formData.timeZone ||
-                    !formData.dateOfBirth)) ||
-                (currentStep === 3 &&
-                  (!formData.street || !formData.city || !formData.state || !formData.zipCode)) ||
-                (currentStep === 4 && !formData.governmentId) ||
-                (currentStep === 5 && (!formData.accountNumber || !formData.routingNumber))
-              }
-            >
-              Next
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={!formData.agreeToTerms || !formData.agreeToPrivacy || isLoading}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {isLoading ? "Creating Account..." : "Create Account"}
-            </Button>
+          {error && (
+            <div className="mt-4 text-sm text-red-600 bg-red-100 border border-red-200 rounded p-3">
+              {error}
+            </div>
           )}
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between mt-8">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 1}
+              className="border-gray-300 hover:border-red-500 bg-transparent"
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Previous
+            </Button>
+
+            {currentStep < totalSteps ? (
+              <Button
+                onClick={nextStep}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={
+                  (currentStep === 1 &&
+                    (!formData.firstName ||
+                      !formData.lastName ||
+                      !formData.email ||
+                      !isPasswordValid ||
+                      formData.password !== formData.confirmPassword ||
+                      !formData.phone)) ||
+                  (currentStep === 2 &&
+                    (!formData.role ||
+                      !formData.organizationName ||
+                      !formData.incorporationDate ||
+                      //!formData.taxId ||
+                      !formData.timeZone ||
+                      !formData.dateOfBirth)) ||
+                  (currentStep === 3 &&
+                    (!formData.street || !formData.city || !formData.state || !formData.zipCode)) ||
+                  //(currentStep === 4 && !formData.governmentId) ||
+                  (currentStep === 5 && (!formData.accountNumber || !formData.routingNumber))
+                }
+              >
+                Next
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={!formData.agreeToTerms || !formData.agreeToPrivacy || isLoading}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isLoading ? "Creating Account..." : "Create Account"}
+              </Button>
+            )}
+          </div>
+
+          {/* Sign In Link */}
+          <div className="text-center mt-6">
+            <p className="text-sm text-gray-600">
+              Already have an account?{" "}
+              <Link href="/signin" className="text-red-600 hover:text-red-500 font-medium">
+                Sign in here
+              </Link>
+            </p>
+          </div>
         </div>
 
-        {/* Sign In Link */}
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-600">
-            Already have an account?{" "}
-            <Link href="/signin" className="text-red-600 hover:text-red-500 font-medium">
-              Sign in here
-            </Link>
-          </p>
-        </div>
+        <Footer />
       </div>
-
-      <Footer />
-    </div>
     </>
   )
 }

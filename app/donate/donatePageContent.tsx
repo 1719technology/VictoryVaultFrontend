@@ -20,18 +20,30 @@ import {
   CreditCard,
   MapPin,
   Building,
+  CheckCircle,
 } from "lucide-react";
 
 interface CampaignDetail {
   id: number;
-  title: string;
-  description: string;
+  campaignName: string;
+  shortDescription: string;
+  fullDescription: string;
+  heroImage: string;
+  additionalImages: string[];
+  fundingGoal: number;
+  amount_donated: number;
+  currency: string;
+  recipientName: string;
+  recipientOrganization: string | null;
+  recipientRelationship: string;
+  endDate: string;
+  disclaimers: string;
+  refundPolicy: string;
 }
 
 export interface DonatePageContentProps {
   campaignId: string | null;
 }
-
 
 export default function DonatePageContent({ campaignId }: DonatePageContentProps) {
   const router = useRouter();
@@ -69,9 +81,13 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // NEW: State for thank-you modal
+  const [showThankYou, setShowThankYou] = useState(false);
+
   const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
   const KEY = process.env.NEXT_PUBLIC_API_KEY!;
 
+  // Load campaign details
   useEffect(() => {
     if (!campaignId) return;
     setLoadingCampaign(true);
@@ -83,12 +99,13 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
         const json = await res.json();
         if (!json.campaign) throw new Error("Malformed response");
         const c = json.campaign;
-        setCampaign({ id: c.id, title: c.title, description: c.description });
+        setCampaign(c);
       })
       .catch(() => setCampaignError("Could not load campaign"))
       .finally(() => setLoadingCampaign(false));
   }, [API, KEY, campaignId]);
 
+  // Handlers
   const handleAmountSelect = (a: string) => {
     setAmount(a);
     setCustomAmount("");
@@ -151,15 +168,12 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
         phone_number: formData.phone_number,
         address: formData.address,
         city: formData.city,
-        cause: campaign.title,
+        cause: campaign.campaignName,
         state: formData.state,
         zip_code: formData.zip_code,
         employer: formData.employer,
         occupation: formData.occupation,
-        // Removed 'status' and renamed 'phone' to 'phone_number'
       };
-
-      console.log("📦 Payload being sent:", payload);
 
       const res = await fetch(`${API}/api/v1/donate`, {
         method: "POST",
@@ -170,335 +184,359 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
         body: JSON.stringify(payload),
       });
 
-      const responseText = await res.text();
-      console.log("📬 Response status:", res.status);
-      console.log("📨 Response body:", responseText);
-
       if (!res.ok) {
-        try {
-          const err = JSON.parse(responseText);
-          throw new Error(err.message || "Donation failed");
-        } catch {
-          throw new Error("Unexpected error: " + responseText);
-        }
+        const errMsg = await res.text();
+        throw new Error(errMsg || "Donation failed");
       }
 
-      router.push("/thank-you");
+      // Instead of redirect, show thank-you modal
+      setShowThankYou(true);
     } catch (e) {
       if (e instanceof Error) {
         setError(e.message);
       } else {
         setError("An unexpected error occurred.");
       }
-    }
-    finally {
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-  <>
-    {/* Loader at top-level */}
-    {isLoading && <VVLoader />}
+    <>
+      {isLoading && <VVLoader />}
 
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <Navigation />
-      <section className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-12">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex justify-center mb-4">
-            <div className="bg-white/20 p-3 rounded-full">
-              <DollarSign className="h-8 w-8 text-white" />
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+        <Navigation />
+        <section className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-12">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="flex justify-center mb-4">
+              <div className="bg-white/20 p-3 rounded-full">
+                <DollarSign className="h-8 w-8 text-white" />
+              </div>
             </div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">Make Your Donation</h1>
+            <p className="text-lg text-red-100">Support the campaign you care about.</p>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Make Your Donation</h1>
-          <p className="text-lg text-red-100">Support the campaign you care about.</p>
-        </div>
-      </section>
+        </section>
 
-      <section className="max-w-4xl mx-auto py-8">
-        <Card className="border-gray-200">
-          <CardHeader>
-            <CardTitle>Donating For</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {loadingCampaign ? (
-              <p className="text-gray-600">Loading…</p>
-            ) : campaign ? (
-              <>
-                <h3 className="text-lg font-semibold">{campaign.title}</h3>
-                <p className="text-sm text-gray-700">{campaign.description}</p>
-              </>
-            ) : (
-              <p className="text-gray-500">No campaign selected</p>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => router.push("/candidates")}
-              disabled={loadingCampaign}
-            >
-              {campaign ? "Change Campaign" : "Select Campaign"}
-            </Button>
-            {campaignError && <p className="text-red-600 text-sm">{campaignError}</p>}
-          </CardContent>
-        </Card>
-      </section>
-
-      <div className="max-w-4xl mx-auto py-8 space-y-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Donate For Section */}
+        <section className="max-w-4xl mx-auto py-8">
           <Card className="border-gray-200">
             <CardHeader>
-              <CardTitle>
-                <DollarSign className="mr-2 text-red-600 inline" /> Donation Amount
-              </CardTitle>
+              <CardTitle>Donating For</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                {presetAmounts.map((a) => (
-                  <button
-                    key={a}
-                    type="button"
-                    onClick={() => handleAmountSelect(a)}
-                    className={`p-2 rounded-lg border-2 font-semibold ${amount === a ? "border-red-500 bg-red-50" : "border-gray-200 hover:border-red-300"}`}
-                  >
-                    ${a}
-                  </button>
-                ))}
-              </div>
-              <div>
-                <Label htmlFor="customAmount">Custom Amount</Label>
-                <div className="relative mt-1">
-                  <DollarSign className="absolute left-3 top-3 text-gray-400" />
+            <CardContent className="space-y-2">
+              {loadingCampaign ? (
+                <p className="text-gray-600">Loading…</p>
+              ) : campaign ? (
+                <>
+                  <h3 className="text-lg font-semibold">{campaign.campaignName}</h3>
+                  <p className="text-sm text-gray-700">{campaign.shortDescription}</p>
+                </>
+              ) : (
+                <p className="text-gray-500">No campaign selected</p>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => router.push("/candidates")}
+                disabled={loadingCampaign}
+              >
+                {campaign ? "Change Campaign" : "Select Campaign"}
+              </Button>
+              {campaignError && <p className="text-red-600 text-sm">{campaignError}</p>}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Donation Form */}
+        <div className="max-w-4xl mx-auto py-8 space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Amount Section */}
+            <Card className="border-gray-200">
+              <CardHeader>
+                <CardTitle>
+                  <DollarSign className="mr-2 text-red-600 inline" /> Donation Amount
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                  {presetAmounts.map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => handleAmountSelect(a)}
+                      className={`p-2 rounded-lg border-2 font-semibold ${amount === a ? "border-red-500 bg-red-50" : "border-gray-200 hover:border-red-300"
+                        }`}
+                    >
+                      ${a}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <Label htmlFor="customAmount">Custom Amount</Label>
+                  <div className="relative mt-1">
+                    <DollarSign className="absolute left-3 top-3 text-gray-400" />
+                    <Input
+                      id="customAmount"
+                      type="number"
+                      placeholder="0.00"
+                      value={customAmount}
+                      onChange={(e) => handleCustomAmountChange(e.target.value)}
+                      className="pl-10"
+                      min="1"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center">
+                    <input
+                      id="recurring"
+                      type="checkbox"
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
+                      className="mr-2"
+                    />
+                    <Label htmlFor="recurring">Make recurring</Label>
+                  </div>
+                  {isRecurring && (
+                    <select
+                      value={recurringFrequency}
+                      onChange={(e) =>
+                        setRecurringFrequency(e.target.value as "weekly" | "monthly" | "quarterly")
+                      }
+                      className="mt-2 w-full"
+                    >
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                    </select>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Personal Information Section */}
+            <Card className="border-gray-200">
+              <CardHeader>
+                <CardTitle>
+                  <Shield className="mr-2 text-red-600 inline" /> Personal Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="first_name">First Name *</Label>
+                    <Input
+                      id="first_name"
+                      value={formData.first_name}
+                      onChange={(e) => handleInput("first_name", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="last_name">Last Name *</Label>
+                    <Input
+                      id="last_name"
+                      value={formData.last_name}
+                      onChange={(e) => handleInput("last_name", e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="email">Email *</Label>
                   <Input
-                    id="customAmount"
-                    type="number"
-                    placeholder="0.00"
-                    value={customAmount}
-                    onChange={(e) => handleCustomAmountChange(e.target.value)}
-                    className="pl-10"
-                    min="1"
-                    step="0.01"
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInput("email", e.target.value)}
+                    required
                   />
                 </div>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="flex items-center">
-                  <input
-                    id="recurring"
-                    type="checkbox"
-                    checked={isRecurring}
-                    onChange={(e) => setIsRecurring(e.target.checked)}
-                    className="mr-2"
-                  />
-                  <Label htmlFor="recurring">Make recurring</Label>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone_number}
+                      onChange={(e) => handleInput("phone_number", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="address">Address</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 text-gray-400" />
+                      <Input
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => handleInput("address", e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
                 </div>
-                {isRecurring && (
-                  <select
-                    value={recurringFrequency}
-                    onChange={(e) => setRecurringFrequency(e.target.value as "weekly" | "monthly" | "quarterly")}
-                    className="mt-2 w-full"
-                  >
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                  </select>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => handleInput("city", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={(e) => handleInput("state", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="zip_code">ZIP</Label>
+                    <Input
+                      id="zip_code"
+                      value={formData.zip_code}
+                      onChange={(e) => handleInput("zip_code", e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="employer">Employer</Label>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-3 text-gray-400" />
+                      <Input
+                        id="employer"
+                        className="pl-10"
+                        value={formData.employer}
+                        onChange={(e) => handleInput("employer", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="occupation">Occupation</Label>
+                    <Input
+                      id="occupation"
+                      value={formData.occupation}
+                      onChange={(e) => handleInput("occupation", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Section */}
+            <Card className="border-gray-200">
+              <CardHeader>
+                <CardTitle>
+                  <CreditCard className="mr-2 text-red-600 inline" /> Payment Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="cardNumber">Card Number *</Label>
+                  <Input
+                    id="cardNumber"
+                    value={formData.cardNumber}
+                    onChange={(e) => handleInput("cardNumber", e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="expire_month">Expiry Month (MM) *</Label>
+                    <Input
+                      id="expire_month"
+                      placeholder="MM"
+                      value={formData.expire_month}
+                      onChange={(e) => handleInput("expire_month", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="expire_year">Expiry Year (YY) *</Label>
+                    <Input
+                      id="expire_year"
+                      placeholder="YY"
+                      value={formData.expire_year}
+                      onChange={(e) => handleInput("expire_year", e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="cvv">CVV *</Label>
+                  <Input
+                    id="cvv"
+                    value={formData.cvv}
+                    onChange={(e) => handleInput("cvv", e.target.value)}
+                    required
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="bg-gray-50 p-4 rounded-lg border-gray-200 border">
+              <h3 className="font-semibold mb-2">Important Legal Information</h3>
+              <p className="text-sm">• Contributions are not tax-deductible.</p>
+              <p className="text-sm">• Must be U.S. citizen or permanent resident.</p>
+            </div>
+
+            <div className="text-center">
+              <Button
+                type="submit"
+                size="lg"
+                className="bg-red-600 hover:bg-red-700 text-white px-12 py-4 font-semibold"
+                disabled={
+                  isLoading ||
+                  !campaign ||
+                  !getCurrentAmount() ||
+                  !formData.first_name ||
+                  !formData.last_name ||
+                  !formData.email ||
+                  !formData.cardNumber ||
+                  !formData.expire_month ||
+                  !formData.expire_year ||
+                  !formData.cvv
+                }
+              >
+                {isLoading ? (
+                  "Processing…"
+                ) : (
+                  <>
+                    <Shield className="mr-2 inline" /> Donate ${getCurrentAmount()}
+                  </>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+              </Button>
+            </div>
+            {error && <p className="text-red-600 text-center mt-4">{error}</p>}
+          </form>
+        </div>
+        <Footer />
+      </div>
 
-          <Card className="border-gray-200">
-            <CardHeader>
-              <CardTitle>
-                <Shield className="mr-2 text-red-600 inline" /> Personal Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="first_name">First Name *</Label>
-                  <Input
-                    id="first_name"
-                    value={formData.first_name}
-                    onChange={(e) => handleInput("first_name", e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="last_name">Last Name *</Label>
-                  <Input
-                    id="last_name"
-                    value={formData.last_name}
-                    onChange={(e) => handleInput("last_name", e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInput("email", e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone_number}
-                    onChange={(e) => handleInput("phone_number", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="address">Address</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 text-gray-400" />
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => handleInput("address", e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => handleInput("city", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) => handleInput("state", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="zip_code">ZIP</Label>
-                  <Input
-                    id="zip_code"
-                    value={formData.zip_code}
-                    onChange={(e) => handleInput("zip_code", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="employer">Employer</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 text-gray-400" />
-                    <Input
-                      id="employer"
-                      className="pl-10"
-                      value={formData.employer}
-                      onChange={(e) => handleInput("employer", e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="occupation">Occupation</Label>
-                  <Input
-                    id="occupation"
-                    value={formData.occupation}
-                    onChange={(e) => handleInput("occupation", e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-200">
-            <CardHeader>
-              <CardTitle>
-                <CreditCard className="mr-2 text-red-600 inline" /> Payment Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="cardNumber">Card Number *</Label>
-                <Input
-                  id="cardNumber"
-                  value={formData.cardNumber}
-                  onChange={(e) => handleInput("cardNumber", e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="expire_month">Expiry Month (MM) *</Label>
-                  <Input
-                    id="expire_month"
-                    placeholder="MM"
-                    value={formData.expire_month}
-                    onChange={(e) => handleInput("expire_month", e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="expire_year">Expiry Year (YY) *</Label>
-                  <Input
-                    id="expire_year"
-                    placeholder="YY"
-                    value={formData.expire_year}
-                    onChange={(e) => handleInput("expire_year", e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="cvv">CVV *</Label>
-                <Input
-                  id="cvv"
-                  value={formData.cvv}
-                  onChange={(e) => handleInput("cvv", e.target.value)}
-                  required
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="bg-gray-50 p-4 rounded-lg border-gray-200 border">
-            <h3 className="font-semibold mb-2">Important Legal Information</h3>
-            <p className="text-sm">• Contributions are not tax-deductible.</p>
-            <p className="text-sm">• Must be U.S. citizen or permanent resident.</p>
-          </div>
-
-          <div className="text-center">
+      {/* Thank You Modal */}
+      {showThankYou && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm text-center">
+            <CheckCircle className="text-green-600 w-12 h-12 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">
+              Thank you for donating to {campaign?.campaignName}!
+            </h2>
+            <p className="text-gray-600 mb-4">Your support is greatly appreciated.</p>
             <Button
-              type="submit"
-              size="lg"
-              className="bg-red-600 hover:bg-red-700 text-white px-12 py-4 font-semibold"
-              disabled={
-                isLoading ||
-                !campaign ||
-                !getCurrentAmount() ||
-                !formData.first_name ||
-                !formData.last_name ||
-                !formData.email ||
-                !formData.cardNumber ||
-                !formData.expire_month ||
-                !formData.expire_year ||
-                !formData.cvv
-              }
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => setShowThankYou(false)}
             >
-              {isLoading ? "Processing…" : <><Shield className="mr-2 inline" /> Donate ${getCurrentAmount()}</>}
+              Close
             </Button>
           </div>
-          {error && <p className="text-red-600 text-center mt-4">{error}</p>}
-        </form>
-      </div>
-      <Footer />
-    </div>
+        </div>
+      )}
     </>
-  )
-};
+  );
+}

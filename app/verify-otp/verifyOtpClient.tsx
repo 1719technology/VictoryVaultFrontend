@@ -81,8 +81,7 @@ export default function VerifyOtpClient() {
     setIsLoading(true);
     setError(null);
     try {
-      console.log("Sending verification request with:", { email, otp });
-
+      // Step 1: Verify OTP
       const res = await fetch(`${API}/api/v1/verify-login-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -90,21 +89,40 @@ export default function VerifyOtpClient() {
       });
 
       const resBody = await res.json();
-      console.log("Response:", res.status, resBody);
-
       if (!res.ok) throw new Error(resBody.message || "OTP verification failed");
 
       const { token } = resBody;
       localStorage.setItem("authToken", token);
-      router.push("/signin");
+
+      // Step 2: Check user status
+      const profileRes = await fetch(`${API}/api/v1/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const profileData = await profileRes.json();
+
+      if (profileData.status === "paused") {
+        setError("Your account is on hold. Please contact support.");
+        localStorage.removeItem("authToken");
+        return;
+      }
+
+      if (profileData.status === "deleted") {
+        setError("Your account has been suspended.");
+        localStorage.removeItem("authToken");
+        return;
+      }
+
+      // Step 3: Redirect to dashboard if active
+      router.push("/admin");
+
     } catch (err: unknown) {
       const error = err as ApiError;
-      console.error("Verification error:", error.message);
       setError(error.message || "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="flex flex-col min-h-screen">

@@ -92,6 +92,11 @@ export default function RegisterOtpPageClient() {
       }
 
       router.push("/admin");
+
+      //  localStorage.setItem("user", json.token);
+      // }
+      // // After OTP success, send them to the KYC page
+      // router.push(`/kyc?userId=${json.user?.id}`);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
