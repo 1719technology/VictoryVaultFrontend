@@ -52,9 +52,6 @@ interface FormData {
   timeZone: string;
   dateOfBirth: string;
   incorporationDate: string;
-  governmentId: File | null;
-  governmentIdBase64: string;
-  //taxId: string;
   accountNumber: string;
   routingNumber: string;
   agreeToTerms: boolean;
@@ -92,9 +89,6 @@ export default function RegisterPage() {
     timeZone: "",
     dateOfBirth: "",
     incorporationDate: "",
-    governmentId: null,
-    governmentIdBase64: "",
-    //taxId: "",
     accountNumber: "",
     routingNumber: "",
     agreeToTerms: false,
@@ -114,40 +108,6 @@ export default function RegisterPage() {
     if (result?.event === "success") {
       const url = result.info.secure_url;
       setFormData((prev) => ({ ...prev, profilePicture: url }));
-    }
-  };
-
-  // Convert government ID to Base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  const handleFileUpload = async (file: File | null) => {
-    if (!file) {
-      setFormData((prev) => ({ ...prev, governmentId: null, governmentIdBase64: "" }));
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File size exceeds 10MB limit.");
-      return;
-    }
-
-    try {
-      const base64 = await fileToBase64(file);
-      setFormData((prev) => ({
-        ...prev,
-        governmentId: file,
-        governmentIdBase64: base64,
-      }));
-      setError(null);
-    } catch {
-      setError("Failed to process file.");
     }
   };
 
@@ -178,7 +138,7 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-          const payload = { ...formData };
+      const payload = { ...formData };
 
       delete (payload as any).governmentIdBase64;
       delete (payload as any).governmentId;
@@ -260,9 +220,12 @@ export default function RegisterPage() {
                 }}
                 onSuccess={handleCloudinaryUpload}
               >
-                {({ open }: { open: () => void }) => (
+                {({ open }: { open?: () => void }) => (
                   <div
-                    onClick={() => open()}
+                    onClick={() => {
+                      if (open) open();
+                      else console.error("Cloudinary widget failed to initialize");
+                    }}
                     className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-red-400 transition-colors cursor-pointer"
                   >
                     <div className="space-y-1 text-center">
@@ -533,23 +496,6 @@ export default function RegisterPage() {
                 </div>
               </div>
             </>
-            {/* {(formData.role !== "")
-              && (
-                <div>
-                  <Label htmlFor="taxId" className="text-sm font-medium text-gray-700">
-                    Tax ID / EIN *
-                  </Label>
-                  <Input
-                    id="taxId"
-                    type="text"
-                    value={formData.taxId}
-                    onChange={(e) => handleInputChange("taxId", e.target.value)}
-                    className="border-gray-300 focus:border-red-500 focus:ring-red-500"
-                    placeholder="XX-XXXXXXX"
-                    required
-                  />
-                </div>
-              )} */}
           </div>
         )
 
@@ -647,72 +593,6 @@ export default function RegisterPage() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Identity Verification</h2>
-              <p className="text-gray-600">Upload your government-issued ID for verification</p>
-            </div>
-
-            {/* <div>
-              <Label htmlFor="governmentId" className="text-sm font-medium text-gray-700">
-                Government-issued ID *
-              </Label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-red-400 transition-colors">
-                <div className="space-y-1 text-center">
-                  <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="governmentId"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-red-600 hover:text-red-500"
-                    >
-                      <span>Upload your ID</span>
-                      <input
-                        id="governmentId"
-                        type="file"
-                        className="sr-only"
-                        accept="image/*,.pdf"
-                        onChange={(e) => handleFileUpload(e.target.files?.[0] || null)}
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">Driver&apos;s license, passport, or state ID</p>
-                  <p className="text-xs text-gray-500">PDF, PNG, JPG up to 10MB</p>
-                </div>
-              </div>
-              {formData.governmentId && formData.governmentIdBase64 && (
-                <div className="mt-2">
-                  {formData.governmentId.type === "application/pdf" ? (
-                    <p className="text-xs text-green-600">✓ {formData.governmentId.name} (PDF uploaded)</p>
-                  ) : (
-                    <img
-                      src={formData.governmentIdBase64}
-                      alt="Government ID Preview"
-                      className="w-32 h-20 object-cover border border-gray-300 rounded"
-                    />
-                  )}
-                </div>
-              )}
-
-            </div> */}
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <Shield className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <h3 className="text-sm font-medium text-blue-800">Your Privacy is Protected</h3>
-                  <p className="mt-1 text-sm text-blue-700">
-                    Your ID is encrypted and stored securely. We only use it for identity verification as required by
-                    law for political contributions.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 5:
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Banking Information</h2>
               <p className="text-gray-600">For processing payouts and refunds</p>
             </div>
@@ -769,7 +649,7 @@ export default function RegisterPage() {
           </div>
         )
 
-      case 6:
+      case 5:
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
@@ -919,7 +799,6 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
-
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-8">
             <Button
@@ -948,13 +827,11 @@ export default function RegisterPage() {
                     (!formData.role ||
                       !formData.organizationName ||
                       !formData.incorporationDate ||
-                      //!formData.taxId ||
                       !formData.timeZone ||
                       !formData.dateOfBirth)) ||
                   (currentStep === 3 &&
                     (!formData.street || !formData.city || !formData.state || !formData.zipCode)) ||
-                  //(currentStep === 4 && !formData.governmentId) ||
-                  (currentStep === 5 && (!formData.accountNumber || !formData.routingNumber))
+                  (currentStep === 4 && (!formData.accountNumber || !formData.routingNumber))
                 }
               >
                 Next
