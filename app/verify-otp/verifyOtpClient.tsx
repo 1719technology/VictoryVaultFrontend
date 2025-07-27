@@ -94,26 +94,18 @@ export default function VerifyOtpClient() {
       const { token } = resBody;
       localStorage.setItem("authToken", token);
 
-      // Step 2: Check user status
+      // Step 2: Check user profile
       const profileRes = await fetch(`${API}/api/v1/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const profileData = await profileRes.json();
 
-      if (profileData.status === "paused") {
-        setError("Your account is on hold. Please contact support.");
-        localStorage.removeItem("authToken");
-        return;
+      // Step 3: Redirect based on KYC status
+      if (profileData.kycStatus === "verified") {
+        router.push("/dashboard");
+      } else {
+        router.push("/kyc");
       }
-
-      if (profileData.status === "deleted") {
-        setError("Your account has been suspended.");
-        localStorage.removeItem("authToken");
-        return;
-      }
-
-      // Step 3: Redirect to dashboard if active
-      router.push("/admin");
 
     } catch (err: unknown) {
       const error = err as ApiError;
@@ -122,7 +114,6 @@ export default function VerifyOtpClient() {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="flex flex-col min-h-screen">
