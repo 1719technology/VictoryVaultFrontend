@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
+import VVLoader from "@/components/vvloader";
 import {
   Users,
   DollarSign,
@@ -28,6 +28,8 @@ interface Campaign {
   goal?: number;
   email: string;
   photo?: string;
+  duration?: string | number;
+  status?: "Active" | "Paused" | "Deleted";
 }
 
 interface RaisedResponse {
@@ -41,6 +43,7 @@ export default function HomePage() {
   const [raisedMap, setRaisedMap] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeCampaignCount, setActiveCampaignCount] = useState<number>(0);
 
   useEffect(() => {
     async function loadAll() {
@@ -49,12 +52,11 @@ export default function HomePage() {
 
       const token = localStorage.getItem("token");
       try {
-        // 1) fetch all campaigns
+        // Fetch all campaigns
         const allRes = await fetch(`${API}/api/v1/all_campaign`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (!allRes.ok) {
-          console.warn(`Campaigns fetch failed: ${allRes.status}`);
           setCampaigns([]);
           setRaisedMap({});
           setLoading(false);
@@ -66,20 +68,22 @@ export default function HomePage() {
           Array.isArray(allJson)
             ? allJson
             : Array.isArray(allJson.campaigns)
-              ? allJson.campaigns
-              : []
-        ).map((c: Record<string, unknown>) => ({
+            ? allJson.campaigns
+            : []
+        ).map((c: Record<string, any>) => ({
           id: c.id,
-          title: c.title,
-          description: c.description,
-          office: c.office,
-          state: c.state,
-          goal: c.goal,
-          email: c.email,
-          photo: c.photo,
+          title: c.campaignName || "Untitled",
+          description: c.fullDescription || c.shortDescription || "",
+          office: c.campaignType || "",
+          state: c.recipientRelationship || "",
+          goal: c.fundingGoal || 0,
+          email: c.email || "",
+          photo: c.heroImage || "",
+          duration: c.campaignDuration || "",
+          status: (c.status as "Active" | "Paused" | "Deleted") || "Active",
         }));
 
-        // 2) for each, fetch total raised
+        // Fetch total raised per campaign
         const map: Record<number, number> = {};
         await Promise.all(
           list.map(async (c) => {
@@ -93,7 +97,6 @@ export default function HomePage() {
               }
             );
             if (!res.ok) {
-              console.warn(`total_raised for ${c.email} failed: ${res.status}`);
               map[c.id] = 0;
               return;
             }
@@ -105,36 +108,56 @@ export default function HomePage() {
         setCampaigns(list);
         setRaisedMap(map);
       } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("An unexpected error occurred.");
-        }
-      }
-      finally {
+        setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+      } finally {
         setLoading(false);
       }
     }
 
+    // Fetch active campaign count
+    async function fetchActiveCount() {
+      try {
+        const res = await fetch(`${API}/api/v1/active_campaigns`);
+        if (res.ok) {
+          const data = await res.json();
+          // Expecting API returns { count: number } or similar
+          setActiveCampaignCount(
+            typeof data.count === "number" ? data.count : Array.isArray(data) ? data.length : 0
+          );
+        }
+      } catch {
+        setActiveCampaignCount(0);
+      }
+    }
+
     loadAll();
+    fetchActiveCount();
   }, [API]);
 
-  // derive stats
-  const totalRaised = useMemo(
-    () =>
-      campaigns.reduce((sum, c) => sum + (raisedMap[c.id] ?? 0), 0),
-    [campaigns, raisedMap]
+  // Filter: Show only Active campaigns
+  const visibleCampaigns = useMemo(
+    () => campaigns.filter((c) => c.status === "Active"),
+    [campaigns]
   );
-  const activeDonors = 156_000; // placeholder
-  const candidatesSupported = campaigns.filter(c => (raisedMap[c.id] ?? 0) > 0).length;
+
+  // Stats
+  const totalRaised = useMemo(
+    () => visibleCampaigns.reduce((sum, c) => sum + (raisedMap[c.id] ?? 0), 0),
+    [visibleCampaigns, raisedMap]
+  );
+
+  const candidatesSupported = visibleCampaigns.filter(
+    (c) => (raisedMap[c.id] ?? 0) > 0
+  ).length;
+
   const winRate = useMemo(() => {
-    if (!campaigns.length) return 0;
-    const wins = campaigns.filter((c) => {
+    if (!visibleCampaigns.length) return 0;
+    const wins = visibleCampaigns.filter((c) => {
       const goal = c.goal ?? 0;
       return goal > 0 && (raisedMap[c.id] ?? 0) >= goal;
     }).length;
-    return Math.round((wins / campaigns.length) * 100);
-  }, [campaigns, raisedMap]);
+    return Math.round((wins / visibleCampaigns.length) * 100);
+  }, [visibleCampaigns, raisedMap]);
 
   const fmt = (n: number) =>
     n.toLocaleString(undefined, {
@@ -143,13 +166,8 @@ export default function HomePage() {
       maximumFractionDigits: 0,
     });
 
-  if (loading) return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-      <div className="text-5xl font-extrabold text-red-600 animate-pulse tracking-widest">
-        VV
-      </div>
-    </div>
-  );
+  if (loading) return <VVLoader />;
+
   if (error) return <p className="p-8 text-red-600 text-center">{error}</p>;
 
   return (
@@ -185,7 +203,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           {[
             { icon: <DollarSign className="h-8 w-8 text-red-600" />, label: "Total Raised", value: fmt(totalRaised) },
-            { icon: <Users className="h-8 w-8 text-blue-600" />, label: "Active Donors", value: activeDonors.toLocaleString() },
+            { icon: <Users className="h-8 w-8 text-blue-600" />, label: "Active Campaigns", value: activeCampaignCount.toLocaleString() },
             { icon: <Target className="h-8 w-8 text-red-600" />, label: "Candidates Supported", value: candidatesSupported },
             { icon: <Shield className="h-8 w-8 text-blue-600" />, label: "Win Rate", value: `${winRate}%` },
           ].map(({ icon, label, value }) => (
@@ -210,7 +228,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {campaigns.map((c) => {
+            {visibleCampaigns.map((c) => {
               const raised = raisedMap[c.id] ?? 0;
               const goal = c.goal ?? 0;
               const pct = goal > 0 ? Math.round((raised / goal) * 100) : 0;
@@ -221,7 +239,7 @@ export default function HomePage() {
                       {c.photo && (
                         <div className="relative w-full h-full">
                           <Image
-                            src={`${API}/uploads/${c.photo}`}
+                            src={c.photo}
                             alt={c.title}
                             layout="fill"
                             objectFit="cover"
@@ -229,14 +247,19 @@ export default function HomePage() {
                         </div>
                       )}
                     </div>
+
                     <CardTitle className="truncate">{c.title}</CardTitle>
-                    {c.office && c.state && (
-                      <div className="text-red-600">{c.office} • {c.state}</div>
+
+                    <div className="text-red-600 mt-1">
+                      Type: {c.office || "N/A"} • Relationship: {c.state || "N/A"}
+                    </div>
+
+                    {c.duration && (
+                      <div className="text-gray-600 text-sm">Duration: {c.duration} days</div>
                     )}
+
                     {c.description && (
-                      <p className="text-gray-600 mt-2 mb-4 line-clamp-3">
-                        {c.description}
-                      </p>
+                      <p className="text-gray-600 mt-2 mb-4 line-clamp-3">{c.description}</p>
                     )}
                   </CardHeader>
                   <CardContent>
@@ -256,7 +279,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
-                      Support {c.title.split(" ")[0]}
+                      Support {c.title ? c.title.split(" ")[0] : "Campaign"}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import VVLoader from "@/components/vvloader";
 import {
   Card,
   CardContent,
@@ -89,10 +90,12 @@ export default function SignInPage() {
         body: JSON.stringify({ email, otp }),
       });
 
-      const { token, message } = await res.json();
-      if (!res.ok) throw new Error(message || "OTP verification failed");
-
-      localStorage.setItem("authToken", token);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "OTP verification failed");
+      localStorage.setItem("authToken", json.token);
+      if (json.user?.id) {
+        localStorage.setItem("userId", json.user.id);
+      }
       router.push("/admin");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -106,153 +109,161 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex flex-col">
-      <Navigation />
+    <>
+      {/* Loader at top-level */}
+      {isLoading && <VVLoader />}
 
-      <main className="flex-grow flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="bg-red-100 p-3 rounded-full">
-                <Flag className="h-8 w-8 text-red-600" />
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+        <Navigation />
+        <main className="flex-grow flex items-center justify-center px-4 py-12">
+          <div className="w-full max-w-md space-y-8">
+            <div className="text-center">
+              <div className="flex justify-center mb-4">
+                <div className="bg-red-100 p-3 rounded-full">
+                  <Flag className="h-8 w-8 text-red-600" />
+                </div>
               </div>
+              <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
+              <p className="mt-2 text-gray-600">
+                Sign in to your VictoryVault account
+              </p>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-            <p className="mt-2 text-gray-600">
-              Sign in to your VictoryVault account
-            </p>
-          </div>
 
-          <Card className="border-red-100 shadow-lg">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl text-center text-gray-900">
-                Sign In
-              </CardTitle>
-              <CardDescription className="text-center">
-                Enter your credentials to access your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+            <Card className="border-red-100 shadow-lg">
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl text-center text-gray-900">
+                  Sign In
+                </CardTitle>
+                <CardDescription className="text-center">
+                  Enter your credentials to access your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
-              <GoogleLogin
-                width={500}
-                onSuccess={(credentialResponse: CredentialResponse) => {
-                  const idToken = credentialResponse.credential;
-                  if (!idToken) {
-                    setError("Google did not return a valid credential.");
-                    return;
-                  }
-                  fetch(`${API}/api/v1/auth_login`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ token: idToken }),
-                  })
-                    .then(async (res) => {
-                      const json = await res.json();
-                      if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
-                      return json;
+                <GoogleLogin
+                  width={500}
+                  onSuccess={(credentialResponse: CredentialResponse) => {
+                    const idToken = credentialResponse.credential;
+                    if (!idToken) {
+                      setError("Google did not return a valid credential.");
+                      return;
+                    }
+                    fetch(`${API}/api/v1/auth_login`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ token: idToken }),
                     })
-                    .then(({ token }) => {
-                      localStorage.setItem("token", token);
-                      router.push("/admin");
-                    })
-                    .catch((e) => {
-                      setError(e.message || "Login failed");
-                    });
-                }}
-                onError={() => {
-                  setError("Google sign-in failed");
-                  setIsLoading(false);
-                }}
-              />
+                      .then(async (res) => {
+                        const json = await res.json();
+                        if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
+                        return json;
+                      })
+                      .then(({ token }) => {
+                        localStorage.setItem("token", token);
+                        router.push("/admin");
+                      })
+                      .catch((e) => {
+                        setError(e.message || "Login failed");
+                      });
+                  }}
+                  onError={() => {
+                    setError("Google sign-in failed");
+                    setIsLoading(false);
+                  }}
+                />
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator className="w-full" />
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-gray-500">
+                      Or continue with email OTP
+                    </span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">
-                    Or continue with email OTP
-                  </span>
-                </div>
-              </div>
 
-              {!otpSent ? (
-                <form onSubmit={handleRequestOtp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
+                {!otpSent ? (
+                  <form onSubmit={handleRequestOtp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 pr-10"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        tabIndex={-1}
-                      >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="pl-10 pr-10"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-red-600 hover:bg-red-700 text-white"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Sending OTP…" : "Request OTP"}
-                  </Button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="otp">OTP</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="otp"
-                        type="text"
-                        placeholder="Enter the 6-digit OTP"
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
+                    <Button
+                      type="submit"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Sending OTP…" : "Request OTP"}
+                    </Button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleVerifyOtp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="otp">OTP</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="otp"
+                          type="text"
+                          placeholder="Enter the 6-digit OTP"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-red-600 hover:bg-red-700 text-white"
-                    disabled={isLoading || otp.length !== 6}
-                  >
-                    {isLoading ? "Verifying…" : "Verify & Sign In"}
-                  </Button>
-                </form>
-              )}
+                    <Button
+                      type="submit"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white"
+                      disabled={isLoading || otp.length !== 6}
+                    >
+                      {isLoading ? "Verifying…" : "Verify & Sign In"}
+                    </Button>
+                  </form>
+                )}
+
+
+                <Button onClick={() => router.push("/kyc")}>
+                KYC
+              </Button>
 
               <div className="text-center">
                 <p className="text-sm text-gray-600">
@@ -291,9 +302,10 @@ export default function SignInPage() {
               </Link>
             </p>
           </div>
-        </div>
-      </main>
+      </div>
+    </main >
       <Footer />
-    </div>
+    </div >
+    </>
   );
 }
