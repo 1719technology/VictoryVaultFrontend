@@ -238,6 +238,15 @@ export default function SignInPage() {
                     </Link>
                   </p>
                 </div>
+
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">
+                    you are an admin, sigin here?{" "}
+                    <Link href="/super-admin/signin" className="text-red-600 hover:text-red-500 font-medium">
+                      Sign up here
+                    </Link>
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
