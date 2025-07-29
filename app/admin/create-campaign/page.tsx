@@ -1,15 +1,17 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
-import { CampaignForm, type CampaignData } from "@/components/campaign-form";
+import { CampaignForm, CampaignData } from "@/components/campaign-form";
 import { createCampaign } from "./action";
 import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function CreateCampaignPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const router = useRouter();
 
   const handleSubmit = async (data: CampaignData) => {
     setIsSaving(true);
@@ -18,23 +20,11 @@ export default function CreateCampaignPage() {
     try {
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error("You must be logged in to create a campaign.");
-      const userId = localStorage.getItem("userId");
-      if (!userId) throw new Error("Missing user ID. Please log in again.");
 
-      /**
-       * `coverImage` and `imageGallery` are already URLs provided by the form,
-       * so we pass them directly to the API.
-       */
-      const payload = {
-        ...data,
-        userId,
-      };
-
-      const result = await createCampaign(payload, token);
+      const result = await createCampaign(data, token); // Pass raw CampaignData
       setMessage({ type: "success", text: result.message });
 
-      // Redirect to dashboard after success
-      window.location.href = "/admin";
+      router.push("/admin");
     } catch (error) {
       console.error("CreateCampaignPage error:", error);
       setMessage({
@@ -53,10 +43,7 @@ export default function CreateCampaignPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex items-center space-x-4 mb-4">
-            <Link
-              href="/admin"
-              className="flex items-center text-gray-600 hover:text-red-600 transition-colors"
-            >
+            <Link href="/admin" className="flex items-center text-gray-600 hover:text-red-600 transition-colors">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Link>
@@ -69,10 +56,11 @@ export default function CreateCampaignPage() {
 
         {message && (
           <div
-            className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${message.type === "success"
+            className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${
+              message.type === "success"
                 ? "bg-green-50 border border-green-200 text-green-800"
                 : "bg-red-50 border border-red-200 text-red-800"
-              }`}
+            }`}
           >
             {message.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -83,7 +71,6 @@ export default function CreateCampaignPage() {
           </div>
         )}
 
-        {/* CampaignForm now handles URL-based inputs */}
         <CampaignForm onSubmit={handleSubmit} isSaving={isSaving} />
       </div>
 

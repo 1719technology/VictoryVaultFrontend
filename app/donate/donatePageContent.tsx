@@ -156,7 +156,7 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
     setIsLoading(true);
     try {
       const payload = {
-        campaignId: campaign.id,
+        campaignId: campaign.id, // check if this is number or GUID
         amount: parseFloat(getCurrentAmount()),
         first_name,
         last_name,
@@ -168,12 +168,15 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
         phone_number: formData.phone_number,
         address: formData.address,
         city: formData.city,
-        cause: campaign.campaignName,
+        cause: campaign.shortDescription, // confirm backend expects this or campaignName
         state: formData.state,
         zip_code: formData.zip_code,
         employer: formData.employer,
         occupation: formData.occupation,
       };
+
+      // LOGGING PAYLOAD
+      console.log("Donate payload being sent:", payload);
 
       const res = await fetch(`${API}/api/v1/donate`, {
         method: "POST",
@@ -184,12 +187,15 @@ export default function DonatePageContent({ campaignId }: DonatePageContentProps
         body: JSON.stringify(payload),
       });
 
+      // LOGGING RESPONSE
+      console.log("Donate API response status:", res.status);
+      const text = await res.text();
+      console.log("Donate API raw response:", text);
+
       if (!res.ok) {
-        const errMsg = await res.text();
-        throw new Error(errMsg || "Donation failed");
+        throw new Error(text || "Donation failed");
       }
 
-      // Instead of redirect, show thank-you modal
       setShowThankYou(true);
     } catch (e) {
       if (e instanceof Error) {

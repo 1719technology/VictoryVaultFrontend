@@ -20,6 +20,7 @@ import {
   Heart,
 } from "lucide-react"
 import { CldUploadWidget } from "next-cloudinary"
+import toast from "react-hot-toast";
 
 export type CampaignData = {
   id?: string
@@ -55,17 +56,17 @@ export type CampaignData = {
 }
 
 interface CampaignFormProps {
-  initialData?: CampaignData | null
-  onSubmit: (data: CampaignData) => Promise<void>
-  isSaving: boolean
-  onCancel?: () => void
+  initialData?: CampaignData | null;
+  onSubmit: (data: CampaignData) => Promise<void>; // <-- Change to CampaignData
+  isSaving: boolean;
+  onCancel?: () => void;
 }
 
-export type CampaignApiPayload = Omit<CampaignData, 'coverImage' | 'imageGallery'> & {
-  coverImage: string;       // Base64 string
-  imageGallery: string[];
-  userId?: string;
-};
+// export type CampaignApiPayload = Omit<CampaignData, 'coverImage' | 'imageGallery'> & {
+//   heroImage: string;
+//   additionalImages: string[];
+//   userId?: string;
+// };
 
 
 export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: CampaignFormProps) {
@@ -139,8 +140,19 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const userId = localStorage.getItem("userId"); // Retrieve from storage
+    if (!userId) {
+      console.error("User ID not found in localStorage");
+      return;
+    }
+
+
     await onSubmit(formData);
   };
+
+
+
 
 
   const steps = [
@@ -275,26 +287,33 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
             <div>
               <Label>Cover Image</Label>
               <CldUploadWidget
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || ''}
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!}
                 options={{
                   multiple: false,
                   maxFiles: 1,
-                  clientAllowedFormats: ['jpg', 'png', 'jpeg'],
+                  clientAllowedFormats: ["jpg", "png", "jpeg"],
                   maxFileSize: 10000000,
                 }}
-                onUpload={(result) => {
-                  if (result.event === 'success' && result.info?.secure_url) {
+                onSuccess={(result) => {
+                  if (result?.info?.secure_url) {
                     setFormData((prev) => ({
                       ...prev,
                       coverImage: result.info.secure_url,
                     }));
+                    toast.success("Cover image uploaded successfully");
                   }
                 }}
               >
                 {({ open }) => (
                   <button
                     type="button"
-                    onClick={() => open && open()}
+                    onClick={() => {
+                      if (!open) {
+                        toast.error("Cloudinary widget failed to load");
+                        return;
+                      }
+                      open();
+                    }}
                     className="border p-3 rounded-md text-gray-600 hover:text-red-600"
                   >
                     Upload Hero Image
@@ -303,7 +322,7 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
               </CldUploadWidget>
 
               {formData.coverImage && (
-                <div className="mt-3">
+                <div className="mt-3 relative">
                   <img
                     src={formData.coverImage}
                     alt="Cover Preview"
@@ -313,6 +332,7 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
                 </div>
               )}
             </div>
+
             <div>
               <Label htmlFor="videoUrl">Video URL</Label>
               <Input
@@ -324,41 +344,68 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
               />
             </div>
           </div>
-          <CldUploadWidget
-            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || ''}
-            options={{
-              multiple: true,
-              maxFiles: 5,
-              clientAllowedFormats: ['jpg', 'png', 'jpeg'],
-              maxFileSize: 10000000,
-            }}
-            onUpload={(result) => {
-              if (result.event === 'success' && result.info?.secure_url) {
-                setFormData((prev) => ({
-                  ...prev,
-                  imageGallery: [...prev.imageGallery, result.info.secure_url],
-                }));
-              }
-            }}
-          >
-            {({ open }) => (
-              <button
-                type="button"
-                onClick={() => open && open()}
-                className="border p-3 rounded-md text-gray-600 hover:text-red-600 mt-3"
-              >
-                Upload Gallery Images
-              </button>
-            )}
-          </CldUploadWidget>
+          <div className="mt-6">
+            <Label>Gallery Images</Label>
+            <CldUploadWidget
+              uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!}
+              options={{
+                multiple: true,
+                maxFiles: 5,
+                clientAllowedFormats: ["jpg", "png", "jpeg"],
+                maxFileSize: 10000000,
+              }}
+              onSuccess={(result) => {
+                if (result?.info?.secure_url) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    imageGallery: [...prev.imageGallery, result.info.secure_url],
+                  }));
+                  toast.success("Gallery image uploaded successfully");
+                }
+              }}
+            >
+              {({ open }) => (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!open) {
+                      toast.error("Cloudinary widget failed to load");
+                      return;
+                    }
+                    open();
+                  }}
+                  className="border p-3 rounded-md text-gray-600 hover:text-red-600"
+                >
+                  Upload Gallery Image
+                </button>
+              )}
+            </CldUploadWidget>
 
-          {formData.imageGallery.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              {formData.imageGallery.map((img, index) => (
-                <img key={index} src={img} className="h-24 object-cover rounded-md border" />
-              ))}
-            </div>
-          )}
+            {formData.imageGallery.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                {formData.imageGallery.map((img, index) => (
+                  <div key={index} className="relative">
+                    <img src={img} className="h-24 w-full object-cover rounded-md border" />
+                    <p className="text-xs text-green-600 mt-1">✓ Image added to gallery</p> {/* Success message here */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          imageGallery: prev.imageGallery.filter((_, i) => i !== index),
+                        }));
+                        toast.success("Image removed");
+                      }}
+                      className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </CardContent>
       ),
     },

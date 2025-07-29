@@ -49,7 +49,7 @@ export default function SignInPage() {
 
         // Redirect depending on KYC status
         if (profile.kycStatus === "verified") {
-          router.push("/dashboard");
+          router.push("/admin");
         } else {
           router.push("/kyc");
         }
@@ -129,7 +129,7 @@ export default function SignInPage() {
         localStorage.setItem("userId", json.user.id);
       }
 
-      router.push("/dashboard");
+      router.push("/admin");
     } catch (e: any) {
       console.error("Error during Google login:", e);
       setError(e.message || "Login failed");
