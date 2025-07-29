@@ -7,13 +7,13 @@ import VVLoader from "@/components/vvloader";
 
 interface Campaign {
   id: number;
-  name: string;                     
+  name: string;
   shortDescription: string;
-  description: string;               
+  description: string;
   campaignType: string;
   category: string;
   fundingGoal: number;
-  fundingRaised: number;             
+  fundingRaised: number; // Donation per campaign
   currency: string;
   heroImage: string;
   additionalImages: string[];
@@ -41,7 +41,7 @@ interface Campaign {
 export default function AdminPage() {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [totalRaised, setTotalRaised] = useState<number>(0);
+  const [totalRaised, setTotalRaised] = useState<number>(0); // Total donations (all campaigns)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toDeleteId, setToDeleteId] = useState<number | null>(null);
@@ -55,6 +55,7 @@ export default function AdminPage() {
     const token = localStorage.getItem('authToken');
     const userId = localStorage.getItem('userId');
 
+    // Redirect unauthenticated users
     if (!token || !userId) {
       router.replace('/signin');
       return;
@@ -81,7 +82,7 @@ export default function AdminPage() {
           campaignType: obj.campaignType ?? obj.category,
           category: obj.category,
           fundingGoal: Number(obj.fundingGoal),
-          fundingRaised: Number(obj.amount_donated ?? 0),
+          fundingRaised: Number(obj.amount_donated ?? 0), // donation per campaign
           currency: obj.currency ?? 'USD',
           heroImage: obj.heroImage,
           additionalImages: obj.additionalImages ?? [],
@@ -111,23 +112,27 @@ export default function AdminPage() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Unexpected error'))
       .finally(() => setLoading(false));
 
-    // Fetch total raised separately
-    fetch(`${API}/api/v1/total_raised/${userId}`, { headers })
+    // Fetch total donations (all campaigns combined)
+    fetch(`${API}/api/v1/total_raised`, { headers })
       .then(async (res) => {
         if (!res.ok) return;
         const totalData = await res.json();
         if (typeof totalData === 'number') setTotalRaised(totalData);
         else if (typeof (totalData as TotalDataResponse).totalRaised === 'number') {
           setTotalRaised((totalData as TotalDataResponse).totalRaised);
+        } else {
+          setTotalRaised(0);
         }
       })
-      .catch(() => {});
+      .catch(() => setTotalRaised(0));
   }, [API, router]);
 
+  // Counts
   const activeCount = campaigns.filter((c) => c.status === 'Active').length;
   const pausedCount = campaigns.filter((c) => c.status === 'Paused').length;
   const deletedCount = campaigns.filter((c) => c.status === 'Deleted').length;
 
+  // Edit modal handlers
   const openEditModal = (campaign: Campaign) => {
     setEditingCampaign(campaign);
     setEditForm({ ...campaign });
@@ -168,6 +173,7 @@ export default function AdminPage() {
     }
   };
 
+  // Delete modal handlers
   const confirmDelete = (id: number) => setToDeleteId(id);
   const cancelDelete = () => setToDeleteId(null);
 
@@ -190,13 +196,14 @@ export default function AdminPage() {
     setToDeleteId(null);
   };
 
+  // Render
   return (
     <>
       {loading && <VVLoader />}
 
       {!loading && (
         <div className="min-h-screen bg-gray-50">
-          {/* NAV */}
+          {/* Header/Nav */}
           <header className="bg-white shadow">
             <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
               <span className="text-2xl font-bold">VICTORYVAULT</span>
@@ -222,7 +229,7 @@ export default function AdminPage() {
             </div>
           </header>
 
-          {/* Dashboard Header */}
+          {/* Dashboard Overview */}
           <main className="p-6">
             <div className="flex justify-between items-center mb-6">
               <div className="text-2xl font-bold">Dashboard</div>
@@ -265,7 +272,6 @@ export default function AdminPage() {
                   key={c.id}
                   className="bg-white shadow rounded-lg border border-gray-200 p-4 flex flex-col relative"
                 >
-                  {/* Status Banner */}
                   {c.status !== 'Active' && (
                     <div
                       className={`absolute top-2 right-2 text-xs px-2 py-1 rounded ${
@@ -278,15 +284,10 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  {/* Header with circle image */}
                   <div className="flex items-center space-x-4 mb-4">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100">
                       {c.heroImage ? (
-                        <img
-                          src={c.heroImage}
-                          alt={c.name}
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={c.heroImage} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
                           No Img
@@ -294,30 +295,18 @@ export default function AdminPage() {
                       )}
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">
-                        {c.name}
-                      </h3>
+                      <h3 className="text-lg font-semibold text-gray-900 truncate">{c.name}</h3>
                       <p className="text-sm text-gray-500">{c.campaignType}</p>
                     </div>
                   </div>
 
-                  {/* Campaign details */}
                   <div className="text-sm text-gray-700 mb-4 space-y-1">
-                    <p>
-                      <span className="font-medium">Goal:</span> ${c.fundingGoal.toLocaleString()}
-                    </p>
-                    <p>
-                      <span className="font-medium">Raised:</span> ${c.fundingRaised.toLocaleString()}
-                    </p>
-                    <p>
-                      <span className="font-medium">Duration:</span> {c.campaignDuration} days
-                    </p>
-                    <p>
-                      <span className="font-medium">Relationship:</span> {c.recipientRelationship}
-                    </p>
+                    <p><span className="font-medium">Goal:</span> ${c.fundingGoal.toLocaleString()}</p>
+                    <p><span className="font-medium">Raised:</span> ${c.fundingRaised.toLocaleString()}</p>
+                    <p><span className="font-medium">Duration:</span> {c.campaignDuration} days</p>
+                    <p><span className="font-medium">Relationship:</span> {c.recipientRelationship}</p>
                   </div>
 
-                  {/* Progress bar */}
                   <div className="mb-4">
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
@@ -332,7 +321,6 @@ export default function AdminPage() {
                     </p>
                   </div>
 
-                  {/* Action buttons */}
                   <div className="flex justify-between mt-auto space-x-2">
                     <button
                       className="text-blue-600 hover:underline"

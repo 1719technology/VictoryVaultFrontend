@@ -11,7 +11,7 @@ import { Footer } from "@/components/footer";
 import { Search, DollarSign, Filter, ArrowRight, Star } from "lucide-react";
 
 interface Campaign {
-  id: number;
+  id: string; // always use string to avoid NaN
   campaignName: string;
   shortDescription: string;
   fullDescription: string;
@@ -53,7 +53,7 @@ export default function CandidatesPage() {
         const json = await res.json();
 
         const list: Campaign[] = (Array.isArray(json) ? json : json.campaigns || []).map((c: any) => ({
-          id: Number(c.id),
+          id: String(c.id ?? ""), // FIX: always string
           campaignName: c.campaignName || "",
           shortDescription: c.shortDescription || "",
           fullDescription: c.fullDescription || "",
@@ -138,6 +138,7 @@ export default function CandidatesPage() {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Search & Filters */}
         <div className="flex flex-col lg:flex-row gap-4 justify-between items-center mb-6">
           <div className="relative w-full lg:w-1/3">
             <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
@@ -188,13 +189,14 @@ export default function CandidatesPage() {
           </div>
         )}
 
+        {/* Campaign Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {paged.map((c) => {
             const pct = c.fundingGoal
               ? Math.round((c.amount_donated || 0) / c.fundingGoal * 100)
               : 0;
             return (
-              <Card key={c.id} className="border-red-100 hover:shadow-lg">
+              <Card key={c.id || Math.random()} className="border-red-100 hover:shadow-lg">
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3">
@@ -275,7 +277,6 @@ export default function CandidatesPage() {
           </div>
         )}
       </div>
-
       <Footer />
     </div>
   );
