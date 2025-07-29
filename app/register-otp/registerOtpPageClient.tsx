@@ -91,7 +91,7 @@ export default function RegisterOtpPageClient() {
         localStorage.setItem("authToken", json.token);
       }
 
-      router.push("/signin");
+      router.push("/kyc");
 
       //  localStorage.setItem("user", json.token);
       // }

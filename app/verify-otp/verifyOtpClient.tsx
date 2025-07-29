@@ -95,17 +95,20 @@ export default function VerifyOtpClient() {
       localStorage.setItem("authToken", token);
 
       // Step 2: Check user profile
-      const profileRes = await fetch(`${API}/api/v1/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const profileData = await profileRes.json();
+      // const profileRes = await fetch(`${API}/api/v1/profile`, {
+      //   headers: { Authorization: `Bearer ${token}` },
+      // });
+      // const profileData = await profileRes.json();
 
-      // Step 3: Redirect based on KYC status
-      if (profileData.kycStatus === "verified") {
-        router.push("/dashboard");
-      } else {
-        router.push("/kyc");
-      }
+      // // Step 3: Redirect based on KYC status
+      // if (profileData.kycStatus === "verified") {
+      //   router.push("/admin");
+      // } else {
+      //   router.push("/kyc");
+      // }
+      // Directly redirect after OTP verification
+      router.push("/admin");
+
 
     } catch (err: unknown) {
       const error = err as ApiError;

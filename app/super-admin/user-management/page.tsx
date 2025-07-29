@@ -67,49 +67,38 @@ export default function UserManagementPage() {
 
   // Fetch all users
   const fetchUsers = useCallback(async () => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      console.warn("[fetchUsers] No token found in localStorage");
+  const token = localStorage.getItem("superAdminToken");
+  if (!token) {
+    toast.error("You must be logged in as Super Admin");
+    return;
+  }
+
+  const queryParams = new URLSearchParams();
+  if (roleFilter !== "all") queryParams.append("role", roleFilter);
+  if (statusFilter === "active") queryParams.append("isActive", "true");
+  if (statusFilter === "deleted") queryParams.append("deleted", "true");
+
+  try {
+    const res = await fetch(`${API}/api/v1/admin/users?${queryParams.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.status === 403) {
+      toast.error("Unauthorized: Super Admin access required");
       return;
     }
 
-    const queryParams = new URLSearchParams();
-    if (roleFilter !== "all") queryParams.append("role", roleFilter);
-    if (statusFilter === "active") queryParams.append("isActive", "true");
-    if (statusFilter === "deleted") queryParams.append("deleted", "true");
-
-    try {
-      const res = await fetch(`${API}/api/v1/admin/users?${queryParams.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      console.log("[fetchUsers] Status:", res.status);
-
-      if (res.status === 403) {
-        toast.error("Forbidden: Your role does not have access to User Management");
-        setUsers([]); // avoid filter crash
-        return;
-      }
-
-      let data;
-      try {
-        data = await res.json();
-      } catch (jsonErr) {
-        console.error("[fetchUsers] Failed to parse JSON:", jsonErr);
-        throw new Error(`Invalid JSON from ${API}/api/v1/admin/users`);
-      }
-
-      console.log("[fetchUsers] Response data:", data);
-      setUsers(data.users || data);
-    } catch (err) {
-      console.error("[fetchUsers] Error:", err);
-      toast.error("Failed to fetch users — check console for details.");
-    }
-  }, [roleFilter, statusFilter]);
+    const data = await res.json();
+    setUsers(Array.isArray(data.data) ? data.data : data.users || []);
+  } catch (err) {
+    toast.error("Failed to fetch users");
+    console.error("fetchUsers error:", err);
+  }
+}, [roleFilter, statusFilter]);
 
   // Fetch single user
   const fetchSingleUser = async (userId: string) => {
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("superAdminToken");
     if (!token) {
       console.warn("[fetchSingleUser] No token found in localStorage");
       return;

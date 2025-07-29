@@ -21,7 +21,7 @@ export default function SuperAdminLoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API}/api/v1/super-admin/login`, {
+      const res = await fetch(`${API}/api/v1/admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

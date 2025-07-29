@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CldUploadWidget, CldImage } from "next-cloudinary";
+import { useRouter } from "next/navigation";
 
 // -------------------- Interfaces --------------------
 interface FormData {
@@ -62,6 +63,7 @@ interface FormData {
 
 // -------------------- Component --------------------
 export default function RegisterPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -162,7 +164,24 @@ export default function RegisterPage() {
 
       if (!res.ok) throw new Error(json?.message || `Error ${res.status}`);
 
-      window.location.href = `/register-otp?email=${formData.email}`;
+      // ✅ Store minimal registration data for OTP page
+      localStorage.setItem(
+        "registrationData",
+        JSON.stringify({
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          //id: json.user.id // <-- add this
+        })
+      );
+
+      // ✅ If API returns token, store it
+      // if (json?.token) {
+      //   localStorage.setItem("authtoken", json.token);
+      // }
+
+      // Redirect to OTP page
+      router.push("/kyc");
     } catch (err) {
       let message = "Unexpected error occurred";
 
@@ -170,10 +189,8 @@ export default function RegisterPage() {
         message = err.message;
       }
 
-      // Log API response for debugging
       console.error("❌ Registration error:", message);
 
-      // Show user-friendly message for 400 errors
       if (message.includes("400") || message.toLowerCase().includes("bad request")) {
         setError("Invalid input: Please review your details and try again.");
       } else {
@@ -182,6 +199,7 @@ export default function RegisterPage() {
     } finally {
       setIsLoading(false);
     }
+
   };
 
   // -------------------- UI Data --------------------
