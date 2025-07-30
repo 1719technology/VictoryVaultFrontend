@@ -145,7 +145,7 @@ export default function CampaignManagementPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <Link href="/super-admin" className="inline-flex items-center gap-2 text-gray-600 hover:text-red-600">
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-600 hover:text-red-600">
         <ArrowLeft className="h-4 w-4" /> Back to Dashboard
       </Link>
 

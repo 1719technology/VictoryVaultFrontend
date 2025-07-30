@@ -41,7 +41,7 @@ interface Campaign {
 export default function AdminPage() {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [totalRaised, setTotalRaised] = useState<number>(0); // Total donations (all campaigns)
+  const [totalRaised, setTotalRaised] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toDeleteId, setToDeleteId] = useState<number | null>(null);
@@ -55,7 +55,6 @@ export default function AdminPage() {
     const token = localStorage.getItem('authToken');
     const userId = localStorage.getItem('userId');
 
-    // Redirect unauthenticated users
     if (!token || !userId) {
       router.replace('/signin');
       return;
@@ -82,7 +81,7 @@ export default function AdminPage() {
           campaignType: obj.campaignType ?? obj.category,
           category: obj.category,
           fundingGoal: Number(obj.fundingGoal),
-          fundingRaised: Number(obj.amount_donated ?? 0), // donation per campaign
+          fundingRaised: Number(obj.amount_donated ?? 0),
           currency: obj.currency ?? 'USD',
           heroImage: obj.heroImage,
           additionalImages: obj.additionalImages ?? [],
@@ -112,13 +111,15 @@ export default function AdminPage() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Unexpected error'))
       .finally(() => setLoading(false));
 
-    // Fetch total donations (all campaigns combined)
+    // Fetch total donations (authorized)
     fetch(`${API}/api/v1/total_raised`, { headers })
       .then(async (res) => {
-        if (!res.ok) return;
+        if (!res.ok) throw new Error('Error fetching total raised');
         const totalData = await res.json();
-        if (typeof totalData === 'number') setTotalRaised(totalData);
-        else if (typeof (totalData as TotalDataResponse).totalRaised === 'number') {
+
+        if (typeof totalData === 'number') {
+          setTotalRaised(totalData);
+        } else if (typeof (totalData as TotalDataResponse).totalRaised === 'number') {
           setTotalRaised((totalData as TotalDataResponse).totalRaised);
         } else {
           setTotalRaised(0);
@@ -196,7 +197,6 @@ export default function AdminPage() {
     setToDeleteId(null);
   };
 
-  // Render
   return (
     <>
       {loading && <VVLoader />}
@@ -274,11 +274,10 @@ export default function AdminPage() {
                 >
                   {c.status !== 'Active' && (
                     <div
-                      className={`absolute top-2 right-2 text-xs px-2 py-1 rounded ${
-                        c.status === 'Paused'
+                      className={`absolute top-2 right-2 text-xs px-2 py-1 rounded ${c.status === 'Paused'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
-                      }`}
+                        }`}
                     >
                       {c.status === 'Paused' ? 'Paused by Admin' : 'Deleted by Admin'}
                     </div>
