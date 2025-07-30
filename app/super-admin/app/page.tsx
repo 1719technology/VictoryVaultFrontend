@@ -40,7 +40,7 @@ export default function SuperAdminLoginPage() {
       toast.success("Welcome, Super Admin!");
 
       // Redirect to Super Admin Dashboard
-      router.push("/super-admin");
+      router.push("/dashboard");
     } catch (err) {
       toast.error("Login failed. Try again later.");
     } finally {

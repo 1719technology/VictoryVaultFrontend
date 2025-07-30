@@ -193,19 +193,19 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link href="/super-admin/registration-review">
+            <Link href="/registration-review">
               <Button variant="outline" className="h-20 flex-col gap-2 bg-red-100 hover:bg-red-300 w-full">
                 <FileText className="h-5 w-5" />
                 Review Registrations
               </Button>
             </Link>
-            <Link href="/super-admin/user-management">
+            <Link href="/user-management">
               <Button variant="outline" className="h-20 flex-col gap-2 bg-red-100 hover:bg-red-300 w-full">
                 <Users className="h-5 w-5" />
                 Manage Users
               </Button>
             </Link>
-            <Link href="/super-admin/campaign-management">
+            <Link href="/campaign-management">
               <Button variant="outline" className="h-20 flex-col gap-2 bg-red-100 hover:bg-red-300 w-full">
                 <Campaign className="h-5 w-5" />
                 Manage Campaigns

@@ -47,7 +47,7 @@ export default function SignInPage() {
           return;
         }
 
-        // Redirect depending on KYC status
+        //Redirect depending on KYC status
         if (profile.kycStatus === "verified") {
           router.push("/admin");
         } else {
@@ -234,15 +234,6 @@ export default function SignInPage() {
                   <p className="text-sm text-gray-600">
                     Don’t have an account?{" "}
                     <Link href="/signup" className="text-red-600 hover:text-red-500 font-medium">
-                      Sign up here
-                    </Link>
-                  </p>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-sm text-gray-600">
-                    you are an admin, sigin here?{" "}
-                    <Link href="/super-admin/signin" className="text-red-600 hover:text-red-500 font-medium">
                       Sign up here
                     </Link>
                   </p>

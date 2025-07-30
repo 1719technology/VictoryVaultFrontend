@@ -90,7 +90,7 @@ export default function RegistrationReviewPage() {
     <div className="p-6 space-y-6 bg-white text-gray-900">
       <div className="flex items-center gap-4">
         <Link
-          href="/super-admin"
+          href="/dashboard"
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-red-600"
         >
           <ArrowLeft className="h-4 w-4" />
