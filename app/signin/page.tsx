@@ -48,11 +48,11 @@ export default function SignInPage() {
         }
 
         //Redirect depending on KYC status
-        if (profile.kycStatus === "verified") {
-          router.push("/admin");
-        } else {
-          router.push("/kyc");
-        }
+        // if (profile.kycStatus === "verified") {
+        //   router.push("/admin");
+        // } else {
+        //   router.push("/kyc");
+        // }
       } catch (err) {
         localStorage.removeItem("authToken");
       }

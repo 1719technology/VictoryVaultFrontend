@@ -62,6 +62,7 @@ interface CampaignFormProps {
   onCancel?: () => void;
 }
 
+
 // export type CampaignApiPayload = Omit<CampaignData, 'coverImage' | 'imageGallery'> & {
 //   heroImage: string;
 //   additionalImages: string[];
@@ -118,6 +119,11 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
     }))
   }
 
+  const [loadingHero, setLoadingHero] = useState(false);
+  const [loadingVideo, setLoadingVideo] = useState(false);
+  const [loadingGallery, setLoadingGallery] = useState(false);
+
+
   // Remove file handling since we're using URLs instead
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
@@ -150,11 +156,6 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
 
     await onSubmit(formData);
   };
-
-
-
-
-
   const steps = [
     {
       id: 1,
@@ -284,6 +285,7 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* --- HERO IMAGE UPLOAD --- */}
             <div>
               <Label>Cover Image</Label>
               <CldUploadWidget
@@ -308,15 +310,22 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
                   <button
                     type="button"
                     onClick={() => {
-                      if (!open) {
+                      setLoadingHero(true);
+                      if (typeof open !== "function") {
                         toast.error("Cloudinary widget failed to load");
+                        setLoadingHero(false);
                         return;
                       }
                       open();
+                      setTimeout(() => setLoadingHero(false), 300);
                     }}
-                    className="border p-3 rounded-md text-gray-600 hover:text-red-600"
+                    className="border p-3 rounded-md text-gray-600 hover:text-red-600 flex items-center justify-center"
                   >
-                    Upload Hero Image
+                    {loadingHero ? (
+                      <span className="animate-spin w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full"></span>
+                    ) : (
+                      "Upload Hero Image"
+                    )}
                   </button>
                 )}
               </CldUploadWidget>
@@ -333,17 +342,63 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
               )}
             </div>
 
+            {/* --- VIDEO UPLOAD --- */}
             <div>
-              <Label htmlFor="videoUrl">Video URL</Label>
-              <Input
-                id="videoUrl"
-                type="url"
-                value={formData.videoUrl}
-                onChange={handleChange}
-                placeholder="https://youtube.com/watch?v=..."
-              />
+              <Label>Campaign Video</Label>
+              <CldUploadWidget
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                options={{
+                  resourceType: "video",
+                  multiple: false,
+                  maxFiles: 1,
+                  clientAllowedFormats: ["mp4", "mov", "avi", "webm"],
+                  maxFileSize: 50000000,
+                }}
+                onSuccess={(result) => {
+                  if (result.event === "success" && result.info?.secure_url) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      videoUrl: result.info.secure_url,
+                    }));
+                    toast.success("Video uploaded successfully");
+                  }
+                  setLoadingVideo(false);
+                }}
+              >
+                {({ open }) => (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (open) {
+                        setLoadingVideo(true);
+                        open();
+                      }
+                    }}
+                    className="border p-3 rounded-md text-gray-600 hover:text-red-600 flex items-center justify-center"
+                  >
+                    {loadingVideo ? (
+                      <span className="animate-spin w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full"></span>
+                    ) : (
+                      "Upload Video"
+                    )}
+                  </button>
+                )}
+              </CldUploadWidget>
+
+              {formData.videoUrl && (
+                <div className="mt-3">
+                  <video
+                    src={formData.videoUrl}
+                    controls
+                    className="w-full rounded-md border"
+                  />
+                  <p className="text-xs text-green-600 mt-1">✓ Video uploaded successfully</p>
+                </div>
+              )}
             </div>
+
           </div>
+          {/* --- GALLERY UPLOAD --- */}
           <div className="mt-6">
             <Label>Gallery Images</Label>
             <CldUploadWidget
@@ -368,15 +423,22 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
                 <button
                   type="button"
                   onClick={() => {
-                    if (!open) {
+                    setLoadingGallery(true);
+                    if (typeof open !== "function") {
                       toast.error("Cloudinary widget failed to load");
+                      setLoadingGallery(false);
                       return;
                     }
                     open();
+                    setTimeout(() => setLoadingGallery(false), 300);
                   }}
-                  className="border p-3 rounded-md text-gray-600 hover:text-red-600"
+                  className="border p-3 rounded-md text-gray-600 hover:text-red-600 flex items-center justify-center"
                 >
-                  Upload Gallery Image
+                  {loadingGallery ? (
+                    <span className="animate-spin w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full"></span>
+                  ) : (
+                    "Upload Gallery Image"
+                  )}
                 </button>
               )}
             </CldUploadWidget>
@@ -386,7 +448,6 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
                 {formData.imageGallery.map((img, index) => (
                   <div key={index} className="relative">
                     <img src={img} className="h-24 w-full object-cover rounded-md border" />
-                    <p className="text-xs text-green-600 mt-1">✓ Image added to gallery</p> {/* Success message here */}
                     <button
                       type="button"
                       onClick={() => {
