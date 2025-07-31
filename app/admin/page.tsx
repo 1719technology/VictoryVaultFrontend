@@ -275,8 +275,8 @@ export default function AdminPage() {
                   {c.status !== 'Active' && (
                     <div
                       className={`absolute top-2 right-2 text-xs px-2 py-1 rounded ${c.status === 'Paused'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
                         }`}
                     >
                       {c.status === 'Paused' ? 'Paused by Admin' : 'Deleted by Admin'}
@@ -321,27 +321,32 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex justify-between mt-auto space-x-2">
+                    {/* View Button */}
                     <button
-                      className="text-blue-600 hover:underline"
                       onClick={() => {
                         localStorage.setItem("selectedCampaign", JSON.stringify(c));
                         router.push(`/admin/campaign/${c.id}`);
                       }}
+                      className="flex-1 bg-blue-600 text-white text-sm px-3 py-2 rounded hover:bg-blue-700 transition"
                     >
                       View
                     </button>
+
+                    {/* Edit Button */}
                     <button
-                      className="text-yellow-600 hover:underline"
                       onClick={() => {
                         localStorage.setItem("selectedCampaign", JSON.stringify(c));
                         router.push(`/admin/campaign/${c.id}/edit`);
                       }}
+                      className="flex-1 bg-yellow-500 text-white text-sm px-3 py-2 rounded hover:bg-yellow-600 transition"
                     >
                       Edit
                     </button>
+
+                    {/* Delete Button */}
                     <button
                       onClick={() => confirmDelete(c.id)}
-                      className="flex-1 bg-red-50 text-red-700 text-sm px-3 py-2 rounded hover:bg-red-100"
+                      className="flex-1 bg-red-500 text-white text-sm px-3 py-2 rounded hover:bg-red-600 transition"
                     >
                       Delete
                     </button>

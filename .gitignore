@@ -16,6 +16,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 app/super-admin/node_modules
+app/super-admin/.next
 
 # env files
 .env*

@@ -41,7 +41,9 @@ interface CampaignData {
 export default function EditCampaignPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
-
+  const [uploadingHero, setUploadingHero] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [formData, setFormData] = useState<CampaignData | null>(null);
 
   useEffect(() => {
@@ -117,16 +119,17 @@ export default function EditCampaignPage() {
 
     // Remove `id` from the payload
     const { id: _id, ...payload } = formData;
+    console.log("Updating campaign with ID:", id);
 
     const res = await fetch(`${API}/api/v1/update_campaign/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         ...payload,
-        userId,
+        //userId,
         fundingGoal: Number(formData.fundingGoal),
         campaignDuration: Number(formData.campaignDuration),
       }),
@@ -219,15 +222,25 @@ export default function EditCampaignPage() {
             if (result.event === "success" && result.info?.secure_url) {
               setFormData((prev) => ({ ...prev!, heroImage: result.info.secure_url }));
             }
+            setUploadingHero(false); // stop loader
           }}
         >
           {({ open }) => (
             <button
               type="button"
-              onClick={() => open()}
-              className="border p-3 rounded-md text-gray-600 hover:text-red-600"
+              onClick={() => {
+                if (open) {
+                  setUploadingHero(true);
+                  open();
+                }
+              }}
+              className="border p-3 rounded-md text-gray-600 hover:text-red-600 flex items-center gap-2"
             >
-              Upload Hero Image
+              {uploadingHero ? (
+                <span className="animate-spin h-5 w-5 border-2 border-gray-600 border-t-transparent rounded-full"></span>
+              ) : (
+                "Upload Hero Image"
+              )}
             </button>
           )}
         </CldUploadWidget>
@@ -270,24 +283,73 @@ export default function EditCampaignPage() {
                 additionalImages: [...prev!.additionalImages, result.info.secure_url],
               }));
             }
+            setUploadingGallery(false); // stop loader
           }}
         >
           {({ open }) => (
             <button
               type="button"
-              onClick={() => open()}
-              className="border p-3 rounded-md text-gray-600 hover:text-red-600"
+              onClick={() => {
+                if (open) {
+                  setUploadingGallery(true);
+                  open();
+                }
+              }}
+              className="border p-3 rounded-md text-gray-600 hover:text-red-600 flex items-center gap-2"
             >
-              Upload Gallery Images
+              {uploadingGallery ? (
+                <span className="animate-spin h-5 w-5 border-2 border-gray-600 border-t-transparent rounded-full"></span>
+              ) : (
+                "Upload Gallery Images"
+              )}
             </button>
           )}
         </CldUploadWidget>
       </div>
 
-      {/* Video URL */}
+      {/* Campaign Video Upload */}
       <div>
-        <Label htmlFor="videoUrl">Video URL</Label>
-        <Input id="videoUrl" value={formData.videoUrl} onChange={handleChange} />
+        <Label>Campaign Video</Label>
+        {formData.videoUrl && (
+          <div className="mb-2">
+            <video src={formData.videoUrl} controls className="w-64 rounded border" />
+          </div>
+        )}
+        <CldUploadWidget
+          uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+          options={{
+            resourceType: "video",
+            multiple: false,
+            maxFiles: 1,
+            clientAllowedFormats: ["mp4", "mov", "avi", "webm"],
+            maxFileSize: 50000000,
+          }}
+          onSuccess={(result) => {
+            if (result.event === "success" && result.info?.secure_url) {
+              setFormData((prev) => ({ ...prev!, videoUrl: result.info.secure_url }));
+            }
+            setUploadingVideo(false); // stop loader
+          }}
+        >
+          {({ open }) => (
+            <button
+              type="button"
+              onClick={() => {
+                if (open) {
+                  setUploadingVideo(true);
+                  open();
+                }
+              }}
+              className="border p-3 rounded-md text-gray-600 hover:text-red-600 flex items-center gap-2"
+            >
+              {uploadingVideo ? (
+                <span className="animate-spin h-5 w-5 border-2 border-gray-600 border-t-transparent rounded-full"></span>
+              ) : (
+                "Upload Video"
+              )}
+            </button>
+          )}
+        </CldUploadWidget>
       </div>
 
       {/* Recipient Name */}
