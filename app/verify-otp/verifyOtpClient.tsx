@@ -91,32 +91,32 @@ export default function VerifyOtpClient() {
       const resBody = await res.json();
       if (!res.ok) throw new Error(resBody.message || "OTP verification failed");
 
-      const { token, userId } = resBody;  // <-- Expecting backend to send userId too
+      const { token } = resBody;
 
-      // Store both token and userId
+      // Save token immediately
       localStorage.setItem("authToken", token);
-      if (userId) {
-        localStorage.setItem("userId", userId.toString());
+
+      // Step 2: Fetch profile to get userId
+      const profileRes = await fetch(`${API}/api/v1/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const profileData = await profileRes.json();
+
+      if (profileData?.id) {
+        localStorage.setItem("userId", profileData.id.toString());
+        console.log("Saved userId to localStorage:", profileData.id);
+      } else {
+        console.warn("No userId found in profile response", profileData);
       }
 
-       // Step 2: Check user profile
-      // const profileRes = await fetch(`${API}/api/v1/profile`, {
-      //   headers: { Authorization: `Bearer ${token}` },
-      // });
-      // const profileData = await profileRes.json();
+      // Save userId from profile
+      if (profileData?.id) {
+        localStorage.setItem("userId", profileData.id.toString());
+      }
 
-      // // Step 3: Redirect based on KYC status
-      // if (profileData.kycStatus === "verified") {
-      //   router.push("/admin");
-      // } else {
-      //   router.push("/kyc");
-      // }
-      // Directly redirect after OTP verification
-
-      // Redirect to admin dashboard
+      // Step 3: Redirect
       router.push("/admin");
-      console.log("Token:", token, "UserId:", userId);
-
     } catch (err: unknown) {
       const error = err as ApiError;
       setError(error.message || "An unexpected error occurred");
@@ -124,6 +124,7 @@ export default function VerifyOtpClient() {
       setIsLoading(false);
     }
   };
+
 
 
   return (

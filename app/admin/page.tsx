@@ -54,7 +54,7 @@ export default function AdminPage() {
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const userId = localStorage.getItem('userId');
-
+    console.log("AdminPage localStorage -> token:", token, "userId:", userId);
     if (!token || !userId) {
       router.replace('/signin');
       return;
