@@ -91,10 +91,15 @@ export default function VerifyOtpClient() {
       const resBody = await res.json();
       if (!res.ok) throw new Error(resBody.message || "OTP verification failed");
 
-      const { token } = resBody;
-      localStorage.setItem("authToken", token);
+      const { token, userId } = resBody;  // <-- Expecting backend to send userId too
 
-      // Step 2: Check user profile
+      // Store both token and userId
+      localStorage.setItem("authToken", token);
+      if (userId) {
+        localStorage.setItem("userId", userId.toString());
+      }
+
+       // Step 2: Check user profile
       // const profileRes = await fetch(`${API}/api/v1/profile`, {
       //   headers: { Authorization: `Bearer ${token}` },
       // });
@@ -107,9 +112,10 @@ export default function VerifyOtpClient() {
       //   router.push("/kyc");
       // }
       // Directly redirect after OTP verification
-      router.push("/admin");
-      console.log(token);
 
+      // Redirect to admin dashboard
+      router.push("/admin");
+      console.log("Token:", token, "UserId:", userId);
 
     } catch (err: unknown) {
       const error = err as ApiError;
@@ -118,6 +124,7 @@ export default function VerifyOtpClient() {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="flex flex-col min-h-screen">
