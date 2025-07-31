@@ -108,6 +108,7 @@ export default function VerifyOtpClient() {
       // }
       // Directly redirect after OTP verification
       router.push("/admin");
+      console.log(token);
 
 
     } catch (err: unknown) {
