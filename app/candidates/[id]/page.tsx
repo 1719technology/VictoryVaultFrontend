@@ -38,7 +38,9 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<"overview" | "gallery" | "video" | "policies">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "gallery" | "video" | "policies">(
+    "overview"
+  );
 
   const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
   const KEY = process.env.NEXT_PUBLIC_API_KEY!;
@@ -73,10 +75,14 @@ export default function CampaignDetailPage() {
   if (!campaign) return <p className="p-8 text-center">Not found.</p>;
 
   const images = [campaign.heroImage, ...(campaign.additionalImages || [])];
-  const pct = Math.min(Math.round((campaign.amount_donated / campaign.fundingGoal) * 100), 100);
+  const pct = Math.min(
+    Math.round((campaign.amount_donated / campaign.fundingGoal) * 100),
+    100
+  );
 
   const nextImg = () => setGalleryIndex((prev) => (prev + 1) % images.length);
-  const prevImg = () => setGalleryIndex((prev) => (prev - 1 + images.length) % images.length);
+  const prevImg = () =>
+    setGalleryIndex((prev) => (prev - 1 + images.length) % images.length);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -88,7 +94,9 @@ export default function CampaignDetailPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-lg font-semibold truncate">{campaign.campaignName}</h1>
+        <h1 className="text-lg font-semibold truncate break-words max-w-full">
+          {campaign.campaignName}
+        </h1>
       </header>
 
       {/* Scrollable Content */}
@@ -102,7 +110,9 @@ export default function CampaignDetailPage() {
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex flex-col justify-end p-4">
-            <p className="text-white text-sm">{campaign.shortDescription}</p>
+            <p className="text-white text-sm break-words overflow-hidden line-clamp-2">
+              {campaign.shortDescription}
+            </p>
           </div>
         </div>
 
@@ -110,8 +120,12 @@ export default function CampaignDetailPage() {
         <div className="max-w-3xl mx-auto px-4 py-6">
           <div className="bg-white rounded-lg shadow p-4 space-y-4">
             <div className="flex justify-between text-sm text-gray-600">
-              <span>Raised: {campaign.currency} {campaign.amount_donated.toLocaleString()}</span>
-              <span>Goal: {campaign.currency} {campaign.fundingGoal.toLocaleString()}</span>
+              <span>
+                Raised: {campaign.currency} {campaign.amount_donated.toLocaleString()}
+              </span>
+              <span>
+                Goal: {campaign.currency} {campaign.fundingGoal.toLocaleString()}
+              </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
@@ -132,11 +146,10 @@ export default function CampaignDetailPage() {
             {["overview", "gallery", "video", "policies"].map((tab) => (
               <button
                 key={tab}
-                className={`pb-2 border-b-2 text-sm capitalize ${
-                  activeTab === tab
+                className={`pb-2 border-b-2 text-sm capitalize ${activeTab === tab
                     ? "border-red-600 text-red-600 font-semibold"
                     : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+                  }`}
                 onClick={() => setActiveTab(tab as typeof activeTab)}
               >
                 {tab}
@@ -149,14 +162,24 @@ export default function CampaignDetailPage() {
             <div className="space-y-4">
               <div className="bg-white shadow rounded-lg p-4">
                 <h2 className="text-lg font-semibold mb-2">About</h2>
-                <p className="text-gray-700">{campaign.fullDescription}</p>
+                <p className="text-gray-700 break-words whitespace-pre-line overflow-hidden line-clamp-3">
+                  {campaign.fullDescription}
+                </p>
               </div>
 
               <div className="bg-white shadow rounded-lg p-4">
                 <h2 className="text-lg font-semibold mb-2">Recipient</h2>
-                <p>Name: {campaign.recipientName}</p>
-                {campaign.recipientOrganization && <p>Organization: {campaign.recipientOrganization}</p>}
-                <p>Relationship: {campaign.recipientRelationship}</p>
+                <p className="break-words overflow-hidden line-clamp-2">
+                  Name: {campaign.recipientName}
+                </p>
+                {campaign.recipientOrganization && (
+                  <p className="break-words overflow-hidden line-clamp-2">
+                    Organization: {campaign.recipientOrganization}
+                  </p>
+                )}
+                <p className="break-words overflow-hidden line-clamp-2">
+                  Relationship: {campaign.recipientRelationship}
+                </p>
               </div>
             </div>
           )}
@@ -207,11 +230,15 @@ export default function CampaignDetailPage() {
             <div className="space-y-4">
               <div className="bg-white shadow rounded-lg p-4">
                 <h2 className="text-lg font-semibold mb-2">Disclaimers</h2>
-                <p>{campaign.disclaimers}</p>
+                <p className="break-words whitespace-pre-line overflow-hidden line-clamp-3">
+                  {campaign.disclaimers}
+                </p>
               </div>
               <div className="bg-white shadow rounded-lg p-4">
                 <h2 className="text-lg font-semibold mb-2">Refund Policy</h2>
-                <p>{campaign.refundPolicy}</p>
+                <p className="break-words whitespace-pre-line overflow-hidden line-clamp-3">
+                  {campaign.refundPolicy}
+                </p>
               </div>
             </div>
           )}
@@ -221,7 +248,8 @@ export default function CampaignDetailPage() {
       {/* Sticky Donate Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center">
         <span className="text-gray-600 text-sm">
-          {pct}% funded • {campaign.currency} {campaign.amount_donated.toLocaleString()} raised
+          {pct}% funded • {campaign.currency}{" "}
+          {campaign.amount_donated.toLocaleString()} raised
         </span>
         <Button
           onClick={() => router.push(`/donate?campaignId=${campaign.id}`)}

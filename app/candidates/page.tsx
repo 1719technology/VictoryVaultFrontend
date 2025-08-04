@@ -11,7 +11,7 @@ import { Footer } from "@/components/footer";
 import { Search, DollarSign, Filter, ArrowRight, Star } from "lucide-react";
 
 interface Campaign {
-  id: string; // always use string to avoid NaN
+  id: string;
   campaignName: string;
   shortDescription: string;
   fullDescription: string;
@@ -53,7 +53,7 @@ export default function CandidatesPage() {
         const json = await res.json();
 
         const list: Campaign[] = (Array.isArray(json) ? json : json.campaigns || []).map((c: any) => ({
-          id: String(c.id ?? ""), // FIX: always string
+          id: String(c.id ?? ""),
           campaignName: c.campaignName || "",
           shortDescription: c.shortDescription || "",
           fullDescription: c.fullDescription || "",
@@ -124,6 +124,7 @@ export default function CandidatesPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navigation />
 
+      {/* Header Section */}
       <section className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">Campaign Candidates</h1>
@@ -158,6 +159,7 @@ export default function CandidatesPage() {
           </Button>
         </div>
 
+        {/* Filters Panel */}
         {showFilters && (
           <div className="bg-white p-4 rounded-lg mb-6 border">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -199,8 +201,9 @@ export default function CandidatesPage() {
               <Card key={c.id || Math.random()} className="border-red-100 hover:shadow-lg">
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      {/* Image */}
+                      <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
                         {c.heroImage && (
                           <img
                             src={c.heroImage}
@@ -209,11 +212,12 @@ export default function CandidatesPage() {
                           />
                         )}
                       </div>
+                      {/* Text */}
                       <div className="min-w-0">
-                        <CardTitle className="text-base sm:text-lg truncate">
+                        <CardTitle className="text-base sm:text-lg line-clamp-1 break-words">
                           {c.campaignName}
                         </CardTitle>
-                        <p className="text-red-600 text-sm truncate">
+                        <p className="text-red-600 text-sm line-clamp-1 break-words">
                           {c.shortDescription}
                         </p>
                       </div>
@@ -228,12 +232,18 @@ export default function CandidatesPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-gray-600 line-clamp-2">{c.fullDescription}</p>
+                  <p className="text-sm text-gray-600 line-clamp-2 break-words">
+                    {c.fullDescription}
+                  </p>
 
                   <div>
                     <div className="flex justify-between text-sm text-gray-600 mb-2">
-                      <span>Raised: {c.currency} {(c.amount_donated || 0).toLocaleString()}</span>
-                      <span>Goal: {c.currency} {(c.fundingGoal || 0).toLocaleString()}</span>
+                      <span>
+                        Raised: {c.currency} {(c.amount_donated || 0).toLocaleString()}
+                      </span>
+                      <span>
+                        Goal: {c.currency} {(c.fundingGoal || 0).toLocaleString()}
+                      </span>
                     </div>
                     <div className="w-full bg-gray-200 h-2 rounded-full">
                       <div
@@ -265,6 +275,7 @@ export default function CandidatesPage() {
           })}
         </div>
 
+        {/* Load More */}
         {paged.length < filtered.length && (
           <div className="text-center mt-8">
             <Button
