@@ -41,7 +41,6 @@ export default function HomePage() {
       const token = localStorage.getItem("token");
 
       try {
-        // Fetch campaigns
         const res = await fetch(`${API}/api/v1/all_campaign`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -198,7 +197,7 @@ export default function HomePage() {
             {filteredCampaigns.map((c) => {
               const pct = c.goal > 0 ? Math.round((c.amount_donated / c.goal) * 100) : 0;
               return (
-                <Card key={c.id} className="hover:shadow-lg border-red-100">
+                <Card key={c.id} className="hover:shadow-lg border-red-100 flex flex-col h-full">
                   <CardHeader className="text-center">
                     <div className="w-24 h-24 mx-auto mb-4 bg-gray-200 rounded-full overflow-hidden">
                       {c.photo && (
@@ -208,9 +207,10 @@ export default function HomePage() {
                       )}
                     </div>
 
-                    <CardTitle className="truncate">{c.title}</CardTitle>
+                    {/* Title truncated */}
+                    <CardTitle className="truncate max-w-full text-ellipsis">{c.title}</CardTitle>
 
-                    <div className="text-red-600 mt-1">
+                    <div className="text-red-600 mt-1 text-sm">
                       Type: {c.office || "N/A"} • Relationship: {c.state || "N/A"}
                     </div>
 
@@ -218,11 +218,14 @@ export default function HomePage() {
                       <div className="text-gray-600 text-sm">Duration: {c.duration} days</div>
                     )}
 
+                    {/* Description clamped to 3 lines */}
                     {c.description && (
-                      <p className="text-gray-600 mt-2 mb-4 line-clamp-3">{c.description}</p>
+                      <p className="text-gray-600 mt-2 mb-4 line-clamp-3 break-words text-sm">
+                        {c.description}
+                      </p>
                     )}
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex flex-col flex-grow">
                     <div className="mb-4">
                       <div className="flex justify-between text-sm text-gray-600 mb-2">
                         <span>Raised: {fmt(c.amount_donated)}</span>

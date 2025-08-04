@@ -113,6 +113,26 @@ export default function EditCampaignPage() {
     e.preventDefault();
     if (!formData) return;
 
+    const maxLen = 255;
+    const textFields = [
+      { key: "campaignName", label: "Campaign Name" },
+      { key: "shortDescription", label: "Tagline" },
+      { key: "fullDescription", label: "Description" },
+      { key: "recipientName", label: "Recipient Name" },
+      { key: "recipientOrganization", label: "Recipient Organization" },
+      { key: "refundPolicy", label: "Refund Policy" },
+      { key: "disbursementSchedule", label: "Disbursement Schedule" },
+      { key: "disclaimers", label: "Disclaimers" },
+    ];
+
+    for (const field of textFields) {
+      const value = formData[field.key as keyof CampaignData] as string;
+      if (value && value.length > maxLen) {
+        alert(`${field.label} cannot exceed ${maxLen} characters`);
+        return;
+      }
+    }
+
     const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
     const token = localStorage.getItem("authToken");
     const userId = localStorage.getItem("userId");

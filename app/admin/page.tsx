@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import VVLoader from "@/components/vvloader";
 
 interface Campaign {
@@ -13,7 +13,7 @@ interface Campaign {
   campaignType: string;
   category: string;
   fundingGoal: number;
-  fundingRaised: number; // Donation per campaign
+  fundingRaised: number;
   currency: string;
   heroImage: string;
   additionalImages: string[];
@@ -40,6 +40,7 @@ interface Campaign {
 
 export default function AdminPage() {
   const router = useRouter();
+  const pathname = usePathname(); // To detect current route for highlighting
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [totalRaised, setTotalRaised] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,6 @@ export default function AdminPage() {
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const userId = localStorage.getItem('userId');
-    console.log("AdminPage localStorage -> token:", token, "userId:", userId);
     if (!token || !userId) {
       router.replace('/signin');
       return;
@@ -203,25 +203,22 @@ export default function AdminPage() {
 
       {!loading && (
         <div className="min-h-screen bg-gray-50">
-          {/* Header/Nav */}
-          <header className="bg-white shadow">
-            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-              <span className="text-2xl font-bold">VICTORYVAULT</span>
-              <nav className="hidden lg:flex space-x-6">
-                <Link href="/admin" className="text-gray-600 hover:text-gray-800">Dashboard</Link>
-                <Link href="/admin/create-campaign" className="text-gray-600 hover:text-gray-800">Campaigns</Link>
-                <Link href="/admin/reports" className="text-gray-600 hover:text-gray-800">Reports</Link>
-              </nav>
-              <div className="flex items-center space-x-4">
+          {/* Fixed Header */}
+          <header className="bg-white shadow fixed top-0 left-0 right-0 z-10">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
+              <span className="text-xl md:text-2xl font-bold">VICTORYVAULT</span>
+              <div className="flex items-center space-x-3 md:space-x-4">
                 <Link href="/admin/create-campaign">
-                  <button className="px-6 py-2 bg-red-600 text-white rounded-lg">New Campaign</button>
+                  <button className="px-4 md:px-6 py-2 bg-red-600 text-white rounded-lg text-sm md:text-base">
+                    New Campaign
+                  </button>
                 </Link>
                 <button
                   onClick={() => {
                     localStorage.removeItem('authToken');
                     router.push('/signin');
                   }}
-                  className="text-gray-600 hover:text-gray-800"
+                  className="text-gray-600 hover:text-gray-800 text-sm md:text-base"
                 >
                   Sign Out
                 </button>
@@ -229,44 +226,45 @@ export default function AdminPage() {
             </div>
           </header>
 
-          {/* Dashboard Overview */}
-          <main className="p-6">
+          {/* Main Content */}
+          <main className="pt-20 pb-20 px-4 md:px-6">
+            {/* Dashboard overview */}
             <div className="flex justify-between items-center mb-6">
-              <div className="text-2xl font-bold">Dashboard</div>
+              <div className="text-xl md:text-2xl font-bold">Dashboard</div>
               <button
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                className="bg-red-600 text-white px-3 md:px-4 py-2 rounded hover:bg-red-700 text-sm md:text-base"
                 onClick={() => router.push('/admin/create-campaign')}
               >
                 + Create New Campaign
               </button>
             </div>
 
-            <p className="text-lg text-gray-600 mb-6">
+            <p className="text-base md:text-lg text-gray-600 mb-6">
               Welcome back! Here's an overview of your campaigns and activities.
             </p>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
               <div className="p-4 bg-green-50 border border-green-200 rounded">
-                <h4 className="text-md font-semibold">Active Campaigns</h4>
-                <p className="text-2xl font-bold mt-2">{activeCount}</p>
+                <h4 className="text-sm md:text-md font-semibold">Active Campaigns</h4>
+                <p className="text-xl md:text-2xl font-bold mt-2">{activeCount}</p>
               </div>
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
-                <h4 className="text-md font-semibold">Paused Campaigns</h4>
-                <p className="text-2xl font-bold mt-2">{pausedCount}</p>
+                <h4 className="text-sm md:text-md font-semibold">Paused Campaigns</h4>
+                <p className="text-xl md:text-2xl font-bold mt-2">{pausedCount}</p>
               </div>
               <div className="p-4 bg-red-50 border border-red-300 rounded">
-                <h4 className="text-md font-semibold">Deleted Campaigns</h4>
-                <p className="text-2xl font-bold mt-2">{deletedCount}</p>
+                <h4 className="text-sm md:text-md font-semibold">Deleted Campaigns</h4>
+                <p className="text-xl md:text-2xl font-bold mt-2">{deletedCount}</p>
               </div>
               <div className="p-4 bg-blue-50 border border-blue-200 rounded">
-                <h4 className="text-md font-semibold">Total Donations</h4>
-                <p className="text-2xl font-bold mt-2">${totalRaised.toLocaleString()}</p>
+                <h4 className="text-sm md:text-md font-semibold">Total Donations</h4>
+                <p className="text-xl md:text-2xl font-bold mt-2">${totalRaised.toLocaleString()}</p>
               </div>
             </div>
 
             {/* Campaign Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
               {campaigns.map((c) => (
                 <div
                   key={c.id}
@@ -321,7 +319,6 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex justify-between mt-auto space-x-2">
-                    {/* View Button */}
                     <button
                       onClick={() => {
                         localStorage.setItem("selectedCampaign", JSON.stringify(c));
@@ -332,7 +329,6 @@ export default function AdminPage() {
                       View
                     </button>
 
-                    {/* Edit Button */}
                     <button
                       onClick={() => {
                         localStorage.setItem("selectedCampaign", JSON.stringify(c));
@@ -343,7 +339,6 @@ export default function AdminPage() {
                       Edit
                     </button>
 
-                    {/* Delete Button */}
                     <button
                       onClick={() => confirmDelete(c.id)}
                       className="flex-1 bg-red-500 text-white text-sm px-3 py-2 rounded hover:bg-red-600 transition"
@@ -355,8 +350,8 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Quick Actions Section */}
-            <section className="mt-12">
+            {/* Quick Actions */}
+            <section className="mb-20">
               <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Link href="/admin/create-campaign">
@@ -379,56 +374,77 @@ export default function AdminPage() {
                 </Link>
               </div>
             </section>
-
-            {/* Delete Modal */}
-            {toDeleteId !== null && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                <div className="bg-white p-6 rounded-lg shadow max-w-sm w-full">
-                  <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
-                  <p className="mb-4 text-gray-600">Are you sure you want to delete this campaign?</p>
-                  <div className="flex justify-end space-x-3">
-                    <button onClick={cancelDelete} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                    <button onClick={doDelete} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Edit Modal */}
-            {editingCampaign && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                <form onSubmit={submitEdit} className="bg-white p-6 rounded shadow w-full max-w-md">
-                  <h3 className="text-lg font-semibold mb-4">Edit Campaign</h3>
-                  <div className="space-y-4">
-                    <input
-                      type="text"
-                      className="w-full border px-4 py-2 rounded"
-                      placeholder="Campaign Title"
-                      value={editForm.name ?? ''}
-                      onChange={(e) => handleEditChange('name', e.target.value)}
-                    />
-                    <textarea
-                      className="w-full border px-4 py-2 rounded"
-                      placeholder="Description"
-                      value={editForm.description ?? ''}
-                      onChange={(e) => handleEditChange('description', e.target.value)}
-                    />
-                    <input
-                      type="number"
-                      className="w-full border px-4 py-2 rounded"
-                      placeholder="Funding Goal"
-                      value={editForm.fundingGoal ?? 0}
-                      onChange={(e) => handleEditChange('fundingGoal', Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="flex justify-end space-x-3 mt-6">
-                    <button onClick={closeEditModal} type="button" className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
-                  </div>
-                </form>
-              </div>
-            )}
           </main>
+
+          {/* Bottom Navigation (responsive + active highlight) */}
+          <footer className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-inner z-10">
+            <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-2 md:py-3">
+              {/* Dashboard */}
+              <Link
+                href="/admin"
+                className={`flex flex-col items-center flex-1 transition ${pathname === '/admin' ? 'text-red-600' : 'text-gray-500'
+                  }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke={pathname === '/admin' ? 'red' : 'gray'}
+                  className="w-5 h-5 md:w-6 md:h-6 mb-1"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 12l2-2m0 0l7-7 7 7m-9 2v10m-4 0h8"
+                  />
+                </svg>
+                <span className="text-xs font-medium">Dashboard</span>
+              </Link>
+
+              {/* Campaigns */}
+              <Link
+                href="/admin/create-campaign"
+                className={`flex flex-col items-center flex-1 transition ${pathname === '/admin/create-campaign' ? 'text-red-600' : 'text-gray-500'
+                  }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke={pathname === '/admin/create-campaign' ? 'red' : 'gray'}
+                  className="w-5 h-5 md:w-6 md:h-6 mb-1"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="text-xs font-medium">Campaigns</span>
+              </Link>
+
+              {/* Transactions */}
+              <Link
+                href="/admin/transactions"
+                className={`flex flex-col items-center flex-1 transition ${pathname === '/admin/transactions' ? 'text-red-600' : 'text-gray-500'
+                  }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke={pathname === '/admin/transactions' ? 'red' : 'gray'}
+                  className="w-5 h-5 md:w-6 md:h-6 mb-1"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17 9V7a5 5 0 00-10 0v2M5 9h14v10H5V9z"
+                  />
+                </svg>
+                <span className="text-xs font-medium">Transactions</span>
+              </Link>
+            </div>
+          </footer>
         </div>
       )}
     </>
