@@ -1,7 +1,7 @@
 version: '3.2'
 services:
   victoryvault-frontend: 
-    image: 331985399415.dkr.ecr.us-east-1.amazonaws.com/victoryvault-frontend
+    image: 331985399415.dkr.ecr.us-east-1.amazonaws.com/victoryvault-frontend:latest
     ports:
       - "3000:3000"
     env_file:
