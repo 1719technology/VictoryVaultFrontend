@@ -195,10 +195,15 @@ export default function CandidatesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {paged.map((c) => {
             const pct = c.fundingGoal
-              ? Math.round((c.amount_donated || 0) / c.fundingGoal * 100)
+              ? Math.round(((c.amount_donated || 0) / c.fundingGoal) * 100)
               : 0;
+
             return (
-              <Card key={c.id || Math.random()} className="border-red-100 hover:shadow-lg">
+              <Card
+                key={c.id || Math.random()}
+                className="border-red-100 hover:shadow-lg flex flex-col h-full overflow-hidden"
+              >
+                {/* Card Header */}
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3 min-w-0">
@@ -212,7 +217,8 @@ export default function CandidatesPage() {
                           />
                         )}
                       </div>
-                      {/* Text */}
+
+                      {/* Title & Short Desc */}
                       <div className="min-w-0">
                         <CardTitle className="text-base sm:text-lg line-clamp-1 break-words">
                           {c.campaignName}
@@ -231,11 +237,14 @@ export default function CandidatesPage() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
+                {/* Card Content */}
+                <CardContent className="space-y-4 flex flex-col flex-grow">
+                  {/* Full description (2-line clamp) */}
                   <p className="text-sm text-gray-600 line-clamp-2 break-words">
                     {c.fullDescription}
                   </p>
 
+                  {/* Progress Bar & Stats */}
                   <div>
                     <div className="flex justify-between text-sm text-gray-600 mb-2">
                       <span>
@@ -256,7 +265,8 @@ export default function CandidatesPage() {
                     </div>
                   </div>
 
-                  <div className="flex space-x-2">
+                  {/* Buttons aligned at bottom */}
+                  <div className="flex space-x-2 mt-auto">
                     <Link href={`/donate?campaignId=${c.id}`}>
                       <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white">
                         <DollarSign className="mr-2 h-4 w-4" />
