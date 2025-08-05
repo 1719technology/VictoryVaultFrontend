@@ -29,7 +29,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Paused" | "Deleted">("All");
 
@@ -79,7 +78,6 @@ export default function HomePage() {
     loadData();
   }, [API]);
 
-  // Filtered campaigns
   const filteredCampaigns = useMemo(() => {
     return campaigns.filter((c) => {
       const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -88,7 +86,6 @@ export default function HomePage() {
     });
   }, [campaigns, searchQuery, filterStatus]);
 
-  // Stats
   const totalRaised = useMemo(
     () => campaigns.reduce((sum, c) => sum + (c.amount_donated || 0), 0),
     [campaigns]
@@ -193,12 +190,16 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Your Campaigns</h2>
             <p className="text-xl text-gray-600">Every campaign you create, every dollar raised.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
             {filteredCampaigns.map((c) => {
               const pct = c.goal > 0 ? Math.round((c.amount_donated / c.goal) * 100) : 0;
               return (
-                <Card key={c.id} className="hover:shadow-lg border-red-100 flex flex-col h-full">
-                  <CardHeader className="text-center">
+                <Card
+                  key={c.id}
+                  className="hover:shadow-lg border-red-100 flex flex-col h-full justify-between"
+                >
+                  {/* Card Header */}
+                  <CardHeader className="text-center flex flex-col flex-shrink-0">
                     <div className="w-24 h-24 mx-auto mb-4 bg-gray-200 rounded-full overflow-hidden">
                       {c.photo && (
                         <div className="relative w-full h-full">
@@ -207,8 +208,7 @@ export default function HomePage() {
                       )}
                     </div>
 
-                    {/* Title truncated */}
-                    <CardTitle className="truncate max-w-full text-ellipsis">{c.title}</CardTitle>
+                    <CardTitle className="truncate max-w-full">{c.title}</CardTitle>
 
                     <div className="text-red-600 mt-1 text-sm">
                       Type: {c.office || "N/A"} • Relationship: {c.state || "N/A"}
@@ -218,14 +218,15 @@ export default function HomePage() {
                       <div className="text-gray-600 text-sm">Duration: {c.duration} days</div>
                     )}
 
-                    {/* Description clamped to 3 lines */}
                     {c.description && (
                       <p className="text-gray-600 mt-2 mb-4 line-clamp-3 break-words text-sm">
                         {c.description}
                       </p>
                     )}
                   </CardHeader>
-                  <CardContent className="flex flex-col flex-grow">
+
+                  {/* Card Content */}
+                  <CardContent className="flex flex-col flex-grow justify-end">
                     <div className="mb-4">
                       <div className="flex justify-between text-sm text-gray-600 mb-2">
                         <span>Raised: {fmt(c.amount_donated)}</span>
@@ -241,8 +242,9 @@ export default function HomePage() {
                         {pct}% of goal reached
                       </div>
                     </div>
+
                     <Link href={`/donate?campaignId=${c.id}`} passHref>
-                      <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
+                      <Button className="w-full bg-red-600 hover:bg-red-700 text-white mt-auto">
                         Support {c.title ? c.title.split(" ")[0] : "Campaign"}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
