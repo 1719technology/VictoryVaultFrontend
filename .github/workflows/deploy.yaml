@@ -76,7 +76,7 @@ jobs:
           echo "NEXT_PUBLIC_WEBINY_API_URL=${{ secrets.NEXT_PUBLIC_WEBINY_API_URL }}" >> .env
           
 
-      - name: Copy docker-compose.yml and .env to EC2
+      - name: Copy docker-compose.yml and .env to EC2 instance
         if: github.event_name == 'push'
         uses: appleboy/scp-action@v0.1.7
         with:
