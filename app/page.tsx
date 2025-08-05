@@ -227,7 +227,7 @@ export default function HomePage() {
 
                   {/* Card Content */}
                   <CardContent className="flex flex-col flex-grow justify-end">
-                    <div className="mb-4">
+                    {/* <div className="mb-4">
                       <div className="flex justify-between text-sm text-gray-600 mb-2">
                         <span>Raised: {fmt(c.amount_donated)}</span>
                         <span>Goal: {fmt(c.goal)}</span>
@@ -241,7 +241,7 @@ export default function HomePage() {
                       <div className="text-center mt-2 text-sm text-gray-600">
                         {pct}% of goal reached
                       </div>
-                    </div>
+                    </div> */}
 
                     <Link href={`/donate?campaignId=${c.id}`} passHref>
                       <Button className="w-full bg-red-600 hover:bg-red-700 text-white mt-auto">

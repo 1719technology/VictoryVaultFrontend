@@ -245,7 +245,7 @@ export default function CandidatesPage() {
                   </p>
 
                   {/* Progress Bar & Stats */}
-                  <div>
+                  {/* <div>
                     <div className="flex justify-between text-sm text-gray-600 mb-2">
                       <span>
                         Raised: {c.currency} {(c.amount_donated || 0).toLocaleString()}
@@ -263,7 +263,7 @@ export default function CandidatesPage() {
                     <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
                       <span>{pct}% funded</span>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Buttons aligned at bottom */}
                   <div className="flex space-x-2 mt-auto">
