@@ -56,6 +56,7 @@ jobs:
             --build-arg NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="${{ secrets.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}" \
             --build-arg NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="${{ secrets.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET }}" \
             --build-arg NEXT_PUBLIC_WEBINY_API_URL="${{ secrets.NEXT_PUBLIC_WEBINY_API_URL }}" \
+            --no-cache \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
       - name: Push image to ECR
@@ -96,6 +97,46 @@ jobs:
           script: |
             sudo mkdir -p /opt/victoryvault-frontend
             cd /opt/victoryvault-frontend
+            
+            # Login to ECR
             aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin 331985399415.dkr.ecr.us-east-1.amazonaws.com
-            sudo docker compose pull
-            sudo docker compose up -d 
+            
+            # Stop existing containers
+            echo "Stopping existing containers..."
+            sudo docker compose down || true
+            
+            # Remove old images to force fresh pull
+            echo "Removing old images..."
+            sudo docker rmi 331985399415.dkr.ecr.us-east-1.amazonaws.com/victoryvault-frontend:latest || true
+            
+            # Force pull the latest image
+            echo "Pulling latest image from ECR..."
+            sudo docker compose pull --no-cache
+            
+            # Start the new containers
+            echo "Starting new containers..."
+            sudo docker compose up -d
+            
+            # Verify deployment
+            echo "=== Deployment completed ==="
+            echo "Container status:"
+            sudo docker compose ps
+            echo "Recent logs:"
+            sudo docker compose logs --tail=10
+
+      - name: Verify deployment
+        if: github.event_name == 'push'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /opt/victoryvault-frontend
+            echo "=== Final Verification ==="
+            echo "Container Status:"
+            sudo docker compose ps
+            echo "Image Details:"
+            sudo docker images | grep victoryvault-frontend
+            echo "Recent Application Logs:"
+            sudo docker compose logs --tail=20 

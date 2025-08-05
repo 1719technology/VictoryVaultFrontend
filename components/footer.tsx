@@ -92,7 +92,7 @@ export function Footer() {
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
           <p>
             &copy; {new Date().getFullYear()} VictoryVault. All rights reserved. Paid for by WinRed and not authorized by any
-            candidate or candidate&apos;s committee.
+            candidate or candidate&apos;s committees.
           </p>
         </div>
       </div>
