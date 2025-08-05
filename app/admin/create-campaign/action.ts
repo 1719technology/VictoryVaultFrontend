@@ -1,46 +1,36 @@
 "use client";
 
-import type { CampaignApiPayload } from "@/components/campaign-form";
+import type { CampaignData } from "@/components/campaign-form";
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
 export async function createCampaign(
-  data: CampaignApiPayload,
+  data: CampaignData,
   token: string
 ): Promise<{ success: boolean; message: string }> {
   console.log("[createCampaign] START");
 
   try {
-    // Debug log
-    console.log("[createCampaign] Incoming data:", {
-      title: data.title,
-      category: data.category,
-      targetAmount: data.targetAmount,
-      termsAccepted: data.termsAccepted,
-    });
-
-    // Validate minimal required fields
+    // Minimal validation
     if (!data.title || !data.category || data.targetAmount <= 0 || !data.termsAccepted) {
       throw new Error("Missing or invalid required campaign fields.");
     }
 
-
-    // Build payload for backend
+    // Map frontend structure → backend payload
     const payload = {
-      userId: data.userId,
       campaignName: data.title,
-      campaignType: data.category?.toLowerCase(), // ensures "Political" → "political"
+      campaignType: data.category.toLowerCase(),
       shortDescription: data.tagline,
       fullDescription: data.description,
       category: data.category,
       fundingGoal: data.targetAmount,
       currency: data.currency,
-      heroImage: data.coverImage,        // url
-      additionalImages: data.imageGallery, // url
+      heroImage: data.coverImage,                // Mapped
+      additionalImages: data.imageGallery,       // Mapped
       videoUrl: data.videoUrl,
       recipientName: data.recipientName,
-      recipientRelationship: "Self",
-      fundDelivery: "direct",
+      recipientRelationship: data.recipientRelationship,
+      fundDelivery: data.fundDelivery,
       campaignDuration: data.duration,
       endDate: data.endDate,
       visibility: data.visibility,
@@ -60,7 +50,6 @@ export async function createCampaign(
     console.log("[createCampaign] Payload ready to send:", payload);
 
     if (!token) throw new Error("User is not authenticated. Please sign in again.");
-    console.log(API);
 
     const response = await fetch(`${API}/api/v1/create_campaign`, {
       method: "POST",
@@ -71,7 +60,7 @@ export async function createCampaign(
       body: JSON.stringify(payload),
     });
 
-    // Safely parse JSON
+    // Parse response
     const text = await response.text();
     let result;
     try {
@@ -79,8 +68,6 @@ export async function createCampaign(
     } catch {
       throw new Error(`Invalid JSON response: ${text}`);
     }
-
-    console.log("[createCampaign] API response:", { status: response.status, result });
 
     if (!response.ok) {
       throw new Error(result.message || `Error ${response.status}: ${JSON.stringify(result)}`);

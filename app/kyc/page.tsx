@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -14,144 +13,73 @@ interface VerificationResponse {
 const VerifyReg = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [verificationData, setVerificationData] =
+    useState<VerificationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [polling, setPolling] = useState(false);
-
-  const API_BASE = "https://api.victoryvault.gop";
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
+    const registrationData = localStorage.getItem("registrationData");
 
-    // If no token, force login
-    if (!token) {
-      setError("Session expired. Please login again.");
+    if (!registrationData) {
+      setError("No registration data found. Please complete registration first.");
       setLoading(false);
-      setTimeout(() => router.push("/signin"), 5000);
       return;
     }
 
-    const startVeriff = async () => {
+    const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const { firstName, lastName, email } = JSON.parse(registrationData);
+    console.log("Registration Data:", { firstName, lastName, email });
+
+    const verifyUser = async () => {
       try {
         setLoading(true);
 
-        // 1. Check profile status first
-        const profileRes = await fetch(`${API_BASE}/api/v1/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Open a blank tab first (avoids popup blocker)
+        const newTab = window.open("", "_blank");
 
-        if (!profileRes.ok) throw new Error("Failed to fetch profile");
-
-        const profile = await profileRes.json();
-
-        // If already verified, go straight to dashboard
-        if (profile.kycStatus === "verified") {
-          router.push("/dashboard");
-          return;
-        }
-
-        // 2. Start Veriff session
-        const veriffRes = await fetch(`${API_BASE}/api/v1/start-veriff`, {
+        const response = await fetch(`${API}/api/v1/start-veriff`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ firstName, lastName, email }),
         });
 
-        let data: VerificationResponse;
-        try {
-          data = await veriffRes.json();
-        } catch {
-          throw new Error("Invalid response from verification server");
-        }
+        const data: VerificationResponse = await response.json();
+        console.log("Verification Response:", data);
 
-        if (veriffRes.ok) {
-          // Save session details (optional for debugging/retry)
-          localStorage.setItem("veriffSessionId", data.sessionId);
-          localStorage.setItem("veriffSessionUrl", data.sessionUrl);
+        if (response.ok) {
+          setVerificationData(data);
+          localStorage.setItem("verificationSessionId", data.sessionId);
 
-          // Open Veriff flow in new tab
-          window.open(data.sessionUrl, "_blank");
-          toast.success("Verification process started. Complete it in the new tab.");
+          // Redirect the opened tab to Veriff session
+          if (newTab) {
+            newTab.location.href = data.sessionUrl;
+          }
 
-          // Begin polling for verification result
-          setPolling(true);
-          pollKycStatus(token);
+          toast.success("Verification process started successfully");
         } else {
+          if (newTab) newTab.close(); // close tab if verification fails
           throw new Error(data.status || "Verification failed");
         }
       } catch (err: any) {
-        // Clear tokens to force fresh login next time
-        localStorage.removeItem("veriffSessionId");
-        localStorage.removeItem("veriffSessionUrl");
-        localStorage.removeItem("authToken");
-
         setError(err.message || "Failed to start verification process");
         toast.error(err.message || "Verification failed");
-
-        // Extend time before redirect (8 seconds)
-        setTimeout(() => router.push("/signin"), 8000);
       } finally {
         setLoading(false);
       }
     };
 
-    startVeriff();
-  }, [router]);
+    verifyUser();
+  }, []);
 
-  /**
-   * Poll backend every 5 seconds until KYC verified or timeout (5 min)
-   */
-  const pollKycStatus = (token: string) => {
-    let attempts = 0;
-    const maxAttempts = 60; // 60 * 5s = 5 minutes
-
-    const interval = setInterval(async () => {
-      attempts++;
-
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!res.ok) throw new Error("Failed to check verification status");
-
-        const profile = await res.json();
-
-        // If verified, stop polling and redirect
-        if (profile.kycStatus === "verified") {
-          clearInterval(interval);
-          toast.success("Verification completed!");
-          router.push("/dashboard");
-        }
-
-        // Stop polling after timeout
-        if (attempts >= maxAttempts) {
-          clearInterval(interval);
-          setError("Verification timed out. Please login and try again.");
-          localStorage.removeItem("authToken");
-        }
-      } catch (err) {
-        clearInterval(interval);
-        setError("Error while checking verification status. Please login again.");
-        localStorage.removeItem("authToken");
-      }
-    }, 5000);
-  };
-
-  // UI: Loading or Polling State
-  if (loading || polling) {
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-red-50">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
         <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
           <div className="flex flex-col items-center space-y-4">
-            <Loader2 className="w-12 h-12 animate-spin text-red-600" />
-            <h1 className="text-2xl font-bold text-gray-900">
-              Waiting for Verification
-            </h1>
-            <p className="text-gray-600 text-center">
-              Please complete the verification process in the new tab. This page
-              will automatically redirect you once verification is approved.
+            <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+            <h1 className="text-2xl font-bold text-gray-900">Starting Verification</h1>
+            <p className="text-gray-600">
+              Please wait while we prepare your identity verification...
             </p>
           </div>
         </div>
@@ -159,10 +87,9 @@ const VerifyReg = () => {
     );
   }
 
-  // UI: Error State
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-red-50">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
         <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
           <div className="flex flex-col items-center space-y-4">
             <div className="p-4 bg-red-100 rounded-full">
@@ -181,15 +108,13 @@ const VerifyReg = () => {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Verification Error
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900">Verification Error</h1>
             <p className="text-gray-600 text-center">{error}</p>
             <button
-              onClick={() => router.push("/signin")}
-              className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              onClick={() => router.push("/register")}
+              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              Go to Login
+              Back to Registration
             </button>
           </div>
         </div>
@@ -197,7 +122,52 @@ const VerifyReg = () => {
     );
   }
 
-  return null;
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="p-4 bg-green-100 rounded-full">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-12 h-12 text-green-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Verification Started</h1>
+          <p className="text-gray-600 text-center">
+            Your identity verification process has been started in a new tab.
+            Please complete the verification steps there.
+          </p>
+          <p className="text-gray-600 text-center">
+            You can safely close this window or return to the login.
+          </p>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Check Status
+            </button>
+            <button
+              onClick={() => router.push("/signin")}
+              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default VerifyReg;

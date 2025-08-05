@@ -96,7 +96,7 @@ export default function CampaignDetailsPage() {
       {/* Header with Back Arrow */}
       <header className="sticky top-0 bg-white border-b px-4 py-3 flex items-center z-20">
         <button
-          onClick={() => router.push("/admin/dashboard")}
+          onClick={() => router.push("/admin")}
           className="text-gray-600 hover:text-red-600 mr-3"
         >
           <ArrowLeft className="h-5 w-5" />

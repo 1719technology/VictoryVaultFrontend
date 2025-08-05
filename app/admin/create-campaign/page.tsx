@@ -1,40 +1,50 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
-import { CampaignForm, type CampaignData } from "@/components/campaign-form";
+import { CampaignForm, CampaignData } from "@/components/campaign-form";
 import { createCampaign } from "./action";
 import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function CreateCampaignPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const router = useRouter();
+  const pathname = usePathname(); // For active highlight
 
   const handleSubmit = async (data: CampaignData) => {
     setIsSaving(true);
     setMessage(null);
 
     try {
+      const maxLen = 255;
+      const fieldsToCheck = [
+        { key: "title", label: "Campaign Name" },
+        { key: "tagline", label: "Tagline" },
+        { key: "description", label: "Description" },
+        { key: "recipientName", label: "Recipient Name" },
+        { key: "recipientOrganization", label: "Recipient Organization" },
+        { key: "refundPolicy", label: "Refund Policy" },
+        { key: "disbursementSchedule", label: "Disbursement Schedule" },
+        { key: "disclaimers", label: "Disclaimers" },
+      ];
+
+      for (const field of fieldsToCheck) {
+        const value = (data as any)[field.key];
+        if (value && value.length > maxLen) {
+          throw new Error(`${field.label} cannot exceed ${maxLen} characters`);
+        }
+      }
+
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error("You must be logged in to create a campaign.");
-      const userId = localStorage.getItem("userId");
-      if (!userId) throw new Error("Missing user ID. Please log in again.");
 
-      /**
-       * `coverImage` and `imageGallery` are already URLs provided by the form,
-       * so we pass them directly to the API.
-       */
-      const payload = {
-        ...data,
-        userId,
-      };
-
-      const result = await createCampaign(payload, token);
+      const result = await createCampaign(data, token); // Pass raw CampaignData
       setMessage({ type: "success", text: result.message });
 
-      // Redirect to dashboard after success
-      window.location.href = "/admin";
+      router.push("/admin");
     } catch (error) {
       console.error("CreateCampaignPage error:", error);
       setMessage({
@@ -83,11 +93,80 @@ export default function CreateCampaignPage() {
           </div>
         )}
 
-        {/* CampaignForm now handles URL-based inputs */}
         <CampaignForm onSubmit={handleSubmit} isSaving={isSaving} />
       </div>
 
       <Footer />
+
+      {/* Bottom Navigation */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-inner z-10">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-2 md:py-3">
+          {/* Dashboard */}
+          <Link
+            href="/admin"
+            className={`flex flex-col items-center flex-1 transition ${pathname === "/admin" ? "text-red-600" : "text-gray-500"
+              }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+              stroke={pathname === "/admin" ? "red" : "gray"}
+              className="w-5 h-5 md:w-6 md:h-6 mb-1"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 12l2-2m0 0l7-7 7 7m-9 2v10m-4 0h8"
+              />
+            </svg>
+            <span className="text-xs font-medium">Dashboard</span>
+          </Link>
+
+          {/* Campaigns */}
+          <Link
+            href="/admin/create-campaign"
+            className={`flex flex-col items-center flex-1 transition ${pathname === "/admin/create-campaign" ? "text-red-600" : "text-gray-500"
+              }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+              stroke={pathname === "/admin/create-campaign" ? "red" : "gray"}
+              className="w-5 h-5 md:w-6 md:h-6 mb-1"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="text-xs font-medium">Campaigns</span>
+          </Link>
+
+          {/* Transactions */}
+          <Link
+            href="/admin/transactions"
+            className={`flex flex-col items-center flex-1 transition ${pathname === "/admin/transactions" ? "text-red-600" : "text-gray-500"
+              }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+              stroke={pathname === "/admin/transactions" ? "red" : "gray"}
+              className="w-5 h-5 md:w-6 md:h-6 mb-1"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M17 9V7a5 5 0 00-10 0v2M5 9h14v10H5V9z"
+              />
+            </svg>
+            <span className="text-xs font-medium">Transactions</span>
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

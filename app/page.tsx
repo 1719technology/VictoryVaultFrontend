@@ -1,21 +1,11 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import VVLoader from "@/components/vvloader";
-import {
-  Users,
-  DollarSign,
-  Target,
-  Shield,
-  ArrowRight,
-} from "lucide-react";
+import { Users, DollarSign, Target, Shield, ArrowRight } from "lucide-react";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 
@@ -25,88 +15,60 @@ interface Campaign {
   description?: string;
   office?: string;
   state?: string;
-  goal?: number;
+  goal: number;
+  amount_donated: number;
   email: string;
   photo?: string;
   duration?: string | number;
   status?: "Active" | "Paused" | "Deleted";
 }
 
-interface RaisedResponse {
-  totalRaised: number;
-}
-
 export default function HomePage() {
   const API = process.env.NEXT_PUBLIC_API_BASE_URL!;
-
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [raisedMap, setRaisedMap] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeCampaignCount, setActiveCampaignCount] = useState<number>(0);
+
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Paused" | "Deleted">("All");
 
   useEffect(() => {
-    async function loadAll() {
+    async function loadData() {
       setLoading(true);
       setError(null);
 
       const token = localStorage.getItem("token");
+
       try {
-        // Fetch all campaigns
-        const allRes = await fetch(`${API}/api/v1/all_campaign`, {
+        const res = await fetch(`${API}/api/v1/all_campaign`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
-        if (!allRes.ok) {
+
+        if (!res.ok) {
           setCampaigns([]);
-          setRaisedMap({});
           setLoading(false);
           return;
         }
 
-        const allJson = await allRes.json();
+        const data = await res.json();
         const list: Campaign[] = (
-          Array.isArray(allJson)
-            ? allJson
-            : Array.isArray(allJson.campaigns)
-            ? allJson.campaigns
-            : []
+          Array.isArray(data) ? data : Array.isArray(data.campaigns) ? data.campaigns : []
         ).map((c: Record<string, any>) => ({
           id: c.id,
           title: c.campaignName || "Untitled",
           description: c.fullDescription || c.shortDescription || "",
           office: c.campaignType || "",
           state: c.recipientRelationship || "",
-          goal: c.fundingGoal || 0,
+          goal: Number(c.fundingGoal || 0),
+          amount_donated: Number(c.amount_donated || 0),
           email: c.email || "",
           photo: c.heroImage || "",
           duration: c.campaignDuration || "",
           status: (c.status as "Active" | "Paused" | "Deleted") || "Active",
         }));
 
-        // Fetch total raised per campaign
-        const map: Record<number, number> = {};
-        await Promise.all(
-          list.map(async (c) => {
-            const res = await fetch(
-              `${API}/api/v1/total_raised/${encodeURIComponent(c.email)}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-            if (!res.ok) {
-              map[c.id] = 0;
-              return;
-            }
-            const body = (await res.json()) as RaisedResponse;
-            map[c.id] = body.totalRaised ?? 0;
-          })
-        );
-
         setCampaigns(list);
-        setRaisedMap(map);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An unexpected error occurred.");
       } finally {
@@ -114,50 +76,34 @@ export default function HomePage() {
       }
     }
 
-    // Fetch active campaign count
-    async function fetchActiveCount() {
-      try {
-        const res = await fetch(`${API}/api/v1/active_campaigns`);
-        if (res.ok) {
-          const data = await res.json();
-          // Expecting API returns { count: number } or similar
-          setActiveCampaignCount(
-            typeof data.count === "number" ? data.count : Array.isArray(data) ? data.length : 0
-          );
-        }
-      } catch {
-        setActiveCampaignCount(0);
-      }
-    }
-
-    loadAll();
-    fetchActiveCount();
+    loadData();
   }, [API]);
 
-  // Filter: Show only Active campaigns
-  const visibleCampaigns = useMemo(
-    () => campaigns.filter((c) => c.status === "Active"),
-    [campaigns]
-  );
+  // Filtered campaigns
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter((c) => {
+      const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = filterStatus === "All" || c.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }, [campaigns, searchQuery, filterStatus]);
 
   // Stats
   const totalRaised = useMemo(
-    () => visibleCampaigns.reduce((sum, c) => sum + (raisedMap[c.id] ?? 0), 0),
-    [visibleCampaigns, raisedMap]
+    () => campaigns.reduce((sum, c) => sum + (c.amount_donated || 0), 0),
+    [campaigns]
   );
 
-  const candidatesSupported = visibleCampaigns.filter(
-    (c) => (raisedMap[c.id] ?? 0) > 0
+  const activeCampaignCount = filteredCampaigns.filter((c) => c.status === "Active").length;
+
+  const candidatesSupported = filteredCampaigns.filter(
+    (c) => c.goal > 0 && c.amount_donated >= c.goal
   ).length;
 
-  const winRate = useMemo(() => {
-    if (!visibleCampaigns.length) return 0;
-    const wins = visibleCampaigns.filter((c) => {
-      const goal = c.goal ?? 0;
-      return goal > 0 && (raisedMap[c.id] ?? 0) >= goal;
-    }).length;
-    return Math.round((wins / visibleCampaigns.length) * 100);
-  }, [visibleCampaigns, raisedMap]);
+  const winRate =
+    activeCampaignCount > 0
+      ? Math.round((candidatesSupported / activeCampaignCount) * 100)
+      : 0;
 
   const fmt = (n: number) =>
     n.toLocaleString(undefined, {
@@ -167,7 +113,6 @@ export default function HomePage() {
     });
 
   if (loading) return <VVLoader />;
-
   if (error) return <p className="p-8 text-red-600 text-center">{error}</p>;
 
   return (
@@ -198,6 +143,29 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Search + Filter */}
+      <section className="py-6 bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between gap-4">
+          <input
+            type="text"
+            placeholder="Search campaigns..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="border rounded px-3 py-2 w-full md:w-1/2"
+          />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+            className="border rounded px-3 py-2"
+          >
+            <option value="All">All</option>
+            <option value="Active">Active</option>
+            <option value="Paused">Paused</option>
+            <option value="Deleted">Deleted</option>
+          </select>
+        </div>
+      </section>
+
       {/* Stats */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -223,34 +191,26 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Your Campaigns</h2>
-            <p className="text-xl text-gray-600">
-              Every campaign you create, every dollar raised.
-            </p>
+            <p className="text-xl text-gray-600">Every campaign you create, every dollar raised.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {visibleCampaigns.map((c) => {
-              const raised = raisedMap[c.id] ?? 0;
-              const goal = c.goal ?? 0;
-              const pct = goal > 0 ? Math.round((raised / goal) * 100) : 0;
+            {filteredCampaigns.map((c) => {
+              const pct = c.goal > 0 ? Math.round((c.amount_donated / c.goal) * 100) : 0;
               return (
-                <Card key={c.id} className="hover:shadow-lg border-red-100">
+                <Card key={c.id} className="hover:shadow-lg border-red-100 flex flex-col h-full">
                   <CardHeader className="text-center">
                     <div className="w-24 h-24 mx-auto mb-4 bg-gray-200 rounded-full overflow-hidden">
                       {c.photo && (
                         <div className="relative w-full h-full">
-                          <Image
-                            src={c.photo}
-                            alt={c.title}
-                            layout="fill"
-                            objectFit="cover"
-                          />
+                          <Image src={c.photo} alt={c.title} layout="fill" objectFit="cover" />
                         </div>
                       )}
                     </div>
 
-                    <CardTitle className="truncate">{c.title}</CardTitle>
+                    {/* Title truncated */}
+                    <CardTitle className="truncate max-w-full text-ellipsis">{c.title}</CardTitle>
 
-                    <div className="text-red-600 mt-1">
+                    <div className="text-red-600 mt-1 text-sm">
                       Type: {c.office || "N/A"} • Relationship: {c.state || "N/A"}
                     </div>
 
@@ -258,15 +218,18 @@ export default function HomePage() {
                       <div className="text-gray-600 text-sm">Duration: {c.duration} days</div>
                     )}
 
+                    {/* Description clamped to 3 lines */}
                     {c.description && (
-                      <p className="text-gray-600 mt-2 mb-4 line-clamp-3">{c.description}</p>
+                      <p className="text-gray-600 mt-2 mb-4 line-clamp-3 break-words text-sm">
+                        {c.description}
+                      </p>
                     )}
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex flex-col flex-grow">
                     <div className="mb-4">
                       <div className="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>Raised: {fmt(raised)}</span>
-                        <span>Goal: {fmt(goal)}</span>
+                        <span>Raised: {fmt(c.amount_donated)}</span>
+                        <span>Goal: {fmt(c.goal)}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
@@ -278,10 +241,12 @@ export default function HomePage() {
                         {pct}% of goal reached
                       </div>
                     </div>
-                    <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
-                      Support {c.title ? c.title.split(" ")[0] : "Campaign"}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Link href={`/donate?campaignId=${c.id}`} passHref>
+                      <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
+                        Support {c.title ? c.title.split(" ")[0] : "Campaign"}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               );

@@ -47,12 +47,12 @@ export default function SignInPage() {
           return;
         }
 
-        // Redirect depending on KYC status
-        if (profile.kycStatus === "verified") {
-          router.push("/dashboard");
-        } else {
-          router.push("/kyc");
-        }
+        //Redirect depending on KYC status
+        // if (profile.kycStatus === "verified") {
+        //   router.push("/admin");
+        // } else {
+        //   router.push("/kyc");
+        // }
       } catch (err) {
         localStorage.removeItem("authToken");
       }
@@ -129,7 +129,7 @@ export default function SignInPage() {
         localStorage.setItem("userId", json.user.id);
       }
 
-      router.push("/dashboard");
+      router.push("/admin");
     } catch (e: any) {
       console.error("Error during Google login:", e);
       setError(e.message || "Login failed");
