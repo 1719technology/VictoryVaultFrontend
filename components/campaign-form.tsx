@@ -164,13 +164,13 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
       content: (
         <CardContent className="space-y-6">
           <div>
-            <Label htmlFor="title">Campaign Title *</Label>
+            <Label htmlFor="title">Campaign Name *</Label>
             <Input
               id="title"
               type="text"
               value={formData.title}
               onChange={handleChange}
-              placeholder="Enter a compelling campaign title"
+              placeholder="Enter a compelling campaign name"
               required
             />
           </div>
@@ -478,7 +478,7 @@ export function CampaignForm({ initialData, onSubmit, isSaving, onCancel }: Camp
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label htmlFor="recipientName">Recipient Name</Label>
+              <Label htmlFor="recipientName">Tiltle Name</Label>
               <Input
                 id="recipientName"
                 type="text"
