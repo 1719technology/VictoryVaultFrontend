@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import VVLoader from "@/components/vvloader";
-import { Users, DollarSign, Target, Shield, ArrowRight } from "lucide-react";
+import { Users, DollarSign, ArrowRight } from "lucide-react";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 
@@ -58,7 +58,7 @@ export default function HomePage() {
           title: c.campaignName || "Untitled",
           description: c.fullDescription || c.shortDescription || "",
           office: c.campaignType || "",
-          state: c.recipientRelationship || "",
+          state: c.recipientName || "", // <-- CHANGE THIS
           goal: Number(c.fundingGoal || 0),
           amount_donated: Number(c.amount_donated || 0),
           email: c.email || "",
@@ -86,29 +86,6 @@ export default function HomePage() {
     });
   }, [campaigns, searchQuery, filterStatus]);
 
-  const totalRaised = useMemo(
-    () => campaigns.reduce((sum, c) => sum + (c.amount_donated || 0), 0),
-    [campaigns]
-  );
-
-  const activeCampaignCount = filteredCampaigns.filter((c) => c.status === "Active").length;
-
-  const candidatesSupported = filteredCampaigns.filter(
-    (c) => c.goal > 0 && c.amount_donated >= c.goal
-  ).length;
-
-  const winRate =
-    activeCampaignCount > 0
-      ? Math.round((candidatesSupported / activeCampaignCount) * 100)
-      : 0;
-
-  const fmt = (n: number) =>
-    n.toLocaleString(undefined, {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    });
-
   if (loading) return <VVLoader />;
   if (error) return <p className="p-8 text-red-600 text-center">{error}</p>;
 
@@ -116,7 +93,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navigation />
 
-      {/* Hero */}
+      {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-20">
         <div className="absolute inset-0 bg-black opacity-10" />
         <div className="relative max-w-7xl mx-auto px-4 text-center">
@@ -163,23 +140,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats */}
+      {/* New Graphic: Seats & Funding */}
       <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
-          {[
-            { icon: <DollarSign className="h-8 w-8 text-red-600" />, label: "Total Raised", value: fmt(totalRaised) },
-            { icon: <Users className="h-8 w-8 text-blue-600" />, label: "Active Campaigns", value: activeCampaignCount.toLocaleString() },
-            { icon: <Target className="h-8 w-8 text-red-600" />, label: "Candidates Supported", value: candidatesSupported },
-            { icon: <Shield className="h-8 w-8 text-blue-600" />, label: "Win Rate", value: `${winRate}%` },
-          ].map(({ icon, label, value }) => (
-            <div key={label} className="text-center">
-              <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                {icon}
-              </div>
-              <div className="text-3xl font-bold text-gray-900">{value}</div>
-              <div className="text-gray-600">{label}</div>
-            </div>
-          ))}
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
+          <div className="flex flex-col items-center">
+            <div className="text-5xl font-extrabold text-red-600">25,000</div>
+            <p className="text-gray-700 text-lg font-medium mt-2">Seats at Risk</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="text-5xl font-extrabold text-blue-600">$50B</div>
+            <p className="text-gray-700 text-lg font-medium mt-2">To Secure America</p>
+          </div>
         </div>
       </section>
 
@@ -190,73 +161,57 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Your Campaigns</h2>
             <p className="text-xl text-gray-600">Every campaign you create, every dollar raised.</p>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-            {filteredCampaigns.map((c) => {
-              const pct = c.goal > 0 ? Math.round((c.amount_donated / c.goal) * 100) : 0;
-              return (
-                <Card
-                  key={c.id}
-                  className="hover:shadow-lg border-red-100 flex flex-col h-full justify-between"
-                >
-                  {/* Card Header */}
-                  <CardHeader className="text-center flex flex-col flex-shrink-0">
-                    <div className="w-24 h-24 mx-auto mb-4 bg-gray-200 rounded-full overflow-hidden">
-                      {c.photo && (
-                        <div className="relative w-full h-full">
-                          <Image src={c.photo} alt={c.title} layout="fill" objectFit="cover" />
-                        </div>
-                      )}
-                    </div>
-
-                    <CardTitle className="truncate max-w-full">{c.title}</CardTitle>
-
-                    <div className="text-red-600 mt-1 text-sm">
-                      Type: {c.office || "N/A"} • Relationship: {c.state || "N/A"}
-                    </div>
-
-                    {c.duration && (
-                      <div className="text-gray-600 text-sm">Duration: {c.duration} days</div>
+            {filteredCampaigns.map((c) => (
+              <Card
+                key={c.id}
+                className="hover:shadow-lg border-red-100 flex flex-col h-full justify-between"
+              >
+                {/* Card Header */}
+                <CardHeader className="text-center flex flex-col flex-shrink-0">
+                  <div className="w-24 h-24 mx-auto mb-4 bg-gray-200 rounded-full overflow-hidden">
+                    {c.photo && (
+                      <div className="relative w-full h-full">
+                        <Image src={c.photo} alt={c.title} layout="fill" objectFit="cover" />
+                      </div>
                     )}
+                  </div>
 
-                    {c.description && (
-                      <p className="text-gray-600 mt-2 mb-4 line-clamp-3 break-words text-sm">
-                        {c.description}
-                      </p>
-                    )}
-                  </CardHeader>
+                  {/* Candidate Name */}
+                  <CardTitle className="truncate max-w-full">{c.title}</CardTitle>
 
-                  {/* Card Content */}
-                  <CardContent className="flex flex-col flex-grow justify-end">
-                    {/* <div className="mb-4">
-                      <div className="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>Raised: {fmt(c.amount_donated)}</span>
-                        <span>Goal: {fmt(c.goal)}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-red-600 h-2 rounded-full transition-all duration-700 ease-out"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <div className="text-center mt-2 text-sm text-gray-600">
-                        {pct}% of goal reached
-                      </div>
-                    </div> */}
+                  {/* Recipient Name (in red, slightly smaller) */}
+                  {c.state && (
+                    <p className="text-red-600 text-sm font-medium mt-1">{c.state}</p>
+                  )}
 
-                    <Link href={`/donate?campaignId=${c.id}`} passHref>
-                      <Button className="w-full bg-red-600 hover:bg-red-700 text-white mt-auto">
-                        Support {c.title ? c.title.split(" ")[0] : "Campaign"}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  {/* Spacer */}
+                  <div className="h-5" />
+                  <div className="h-5" />
+
+                  {/* Description */}
+                  {c.description && (
+                    <p className="text-gray-600 mt-2 mb-4 line-clamp-3 break-words text-sm">
+                      {c.description}
+                    </p>
+                  )}
+                </CardHeader>
+
+                {/* Card Content */}
+                <CardContent className="flex flex-col flex-grow justify-end">
+                  <Link href={`/donate?campaignId=${c.id}`}>
+                    <Button className="w-full bg-red-600 hover:bg-red-700 text-white mt-auto">
+                      Support {c.title || "Campaign"}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
-
       <Footer />
     </div>
   );
